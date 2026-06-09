@@ -72,7 +72,7 @@ export default async function TablaPage() {
             <div>
               <p className="font-bold text-gray-900 dark:text-gray-100">{leader.nombre}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {leader.puntosTotales} puntos · {leader.plenos} plenos
+                {leader.puntosTotales} puntos · {leader.plenos} achuntes
               </p>
             </div>
           </div>
@@ -82,7 +82,7 @@ export default async function TablaPage() {
       <div className="mb-2">
         <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 px-4">
           <span>Pts = Puntos totales</span>
-          <span>⭐ = Plenos</span>
+          <span>⭐ = Achuntes</span>
           <span>✓ = Resultados</span>
         </div>
       </div>

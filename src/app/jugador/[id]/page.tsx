@@ -43,7 +43,7 @@ export default async function JugadorPage({ params }: { params: { id: string } }
         <div className="card p-3 text-center">
           <Star className="w-5 h-5 text-gold-500 fill-gold-400 mx-auto mb-1" />
           <p className="text-2xl font-black text-gray-900 dark:text-gray-100">{plenos}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Plenos</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Achuntes</p>
         </div>
         <div className="card p-3 text-center">
           <Target className="w-5 h-5 text-green-500 mx-auto mb-1" />

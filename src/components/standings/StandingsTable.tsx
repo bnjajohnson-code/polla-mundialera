@@ -20,7 +20,7 @@ export function StandingsTable({ tabla }: Props) {
         <span>#</span>
         <span>Jugador</span>
         <span className="text-center">Pts</span>
-        <span className="text-center" title="Plenos">⭐</span>
+        <span className="text-center" title="Achuntes">⭐</span>
         <span className="text-center" title="Resultados">✓</span>
       </div>
 

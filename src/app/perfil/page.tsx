@@ -110,7 +110,7 @@ export default function PerfilPage() {
         <div className="card p-3 text-center">
           <Star className="w-5 h-5 text-yellow-500 fill-yellow-400 mx-auto mb-1" />
           <p className="text-2xl font-black text-gray-900 dark:text-gray-100">{stats.plenos}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Plenos</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Achuntes</p>
         </div>
         <div className="card p-3 text-center">
           <Target className="w-5 h-5 text-green-500 mx-auto mb-1" />
