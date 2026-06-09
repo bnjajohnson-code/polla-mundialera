@@ -39,3 +39,11 @@ next-env.d.ts
 # prisma
 prisma/dev.db
 prisma/*.db
+
+# claude code internal
+.claude/
+.agents/
+skills-lock.json
+
+# office temp files
+~$*
