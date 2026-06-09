@@ -8,6 +8,7 @@ import crypto from "crypto";
 const schema = z.object({
   nombrePolla: z.string().min(2).max(100).optional(),
   regenerarCodigo: z.boolean().optional(),
+  codigoInvitacion: z.string().min(4).max(20).regex(/^[A-Z0-9]+$/, "Solo letras mayúsculas y números").optional(),
 });
 
 export async function GET() {
@@ -33,7 +34,9 @@ export async function PATCH(req: Request) {
 
     const updateData: Record<string, string> = {};
     if (data.nombrePolla) updateData.nombrePolla = data.nombrePolla;
-    if (data.regenerarCodigo) {
+    if (data.codigoInvitacion) {
+      updateData.codigoInvitacion = data.codigoInvitacion;
+    } else if (data.regenerarCodigo) {
       updateData.codigoInvitacion = crypto.randomBytes(4).toString("hex").toUpperCase();
     }
 

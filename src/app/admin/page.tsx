@@ -39,7 +39,10 @@ export default function AdminPage() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [nombrePolla, setNombrePolla] = useState("");
+  const [codigoEditable, setCodigoEditable] = useState("");
   const [savingConfig, setSavingConfig] = useState(false);
+  const [savingCodigo, setSavingCodigo] = useState(false);
+  const [codigoResult, setCodigoResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -58,6 +61,7 @@ export default function AdminPage() {
     setUsers(usersRes.users ?? []);
     setConfig(configRes.config ?? null);
     setNombrePolla(configRes.config?.nombrePolla ?? "");
+    setCodigoEditable(configRes.config?.codigoInvitacion ?? "");
   };
 
   const handleSync = async () => {
@@ -97,6 +101,29 @@ export default function AdminPage() {
     });
     const data = await res.json();
     setConfig(data.config);
+    setCodigoEditable(data.config?.codigoInvitacion ?? "");
+  };
+
+  const handleSaveCodigo = async () => {
+    const codigo = codigoEditable.toUpperCase().trim();
+    if (codigo.length < 4) return;
+    setSavingCodigo(true);
+    setCodigoResult(null);
+    const res = await fetch("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codigoInvitacion: codigo }),
+    });
+    const data = await res.json();
+    setSavingCodigo(false);
+    if (data.config) {
+      setConfig(data.config);
+      setCodigoEditable(data.config.codigoInvitacion);
+      setCodigoResult("✓ Código actualizado");
+    } else {
+      setCodigoResult("✗ " + (data.error ?? "Error"));
+    }
+    setTimeout(() => setCodigoResult(null), 3000);
   };
 
   const handleSaveConfig = async () => {
@@ -174,9 +201,20 @@ export default function AdminPage() {
             <div>
               <label className="label">Código de invitación</label>
               <div className="flex gap-2">
-                <code className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-mono font-bold text-lg tracking-widest text-center dark:text-gray-100">
-                  {config.codigoInvitacion}
-                </code>
+                <input
+                  className="input flex-1 font-mono font-bold text-lg tracking-widest text-center uppercase"
+                  value={codigoEditable}
+                  onChange={(e) => setCodigoEditable(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                  maxLength={20}
+                  placeholder="Ej: MUNDIAL26"
+                />
+                <button
+                  onClick={handleSaveCodigo}
+                  disabled={savingCodigo || codigoEditable.length < 4}
+                  className="btn-secondary flex items-center gap-1 shrink-0"
+                >
+                  {savingCodigo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                </button>
                 <button
                   onClick={handleCopyCode}
                   className="btn-secondary flex items-center gap-1 shrink-0"
@@ -184,11 +222,16 @@ export default function AdminPage() {
                   {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
+              {codigoResult && (
+                <p className={`text-xs mt-1 ${codigoResult.startsWith("✓") ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
+                  {codigoResult}
+                </p>
+              )}
               <button
                 onClick={handleRegenCode}
                 className="text-xs text-red-500 dark:text-red-400 mt-2 underline"
               >
-                Regenerar código
+                Generar código aleatorio
               </button>
             </div>
           </div>
