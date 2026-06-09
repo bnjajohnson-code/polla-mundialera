@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -28,7 +29,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Email o contraseÃ±a incorrectos.");
+      setError("Email o contraseña incorrectos.");
     } else {
       router.push("/fixture");
       router.refresh();
@@ -37,13 +38,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-900 via-primary-800 to-primary-700 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col items-center justify-center p-4">
-      {/* Theme toggle top-right */}
       <div className="absolute top-4 right-4">
         <ThemeToggle className="text-white/70 hover:text-white hover:bg-white/10 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800" />
       </div>
 
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
           <img
             src="/logo-light.png"
@@ -51,11 +50,11 @@ export default function LoginPage() {
             className="h-12 w-auto mx-auto mb-4 brightness-0 invert"
           />
           <h1 className="text-2xl font-black text-white">Polla Mundialera</h1>
-          <p className="text-primary-200 dark:text-gray-400 text-sm mt-1">Mundial 2026 Â· MÃ©xico Â· CanadÃ¡ Â· EEUU</p>
+          <p className="text-primary-200 dark:text-gray-400 text-sm mt-1">Mundial 2026 · México · Canadá · EEUU</p>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl border border-gray-100 dark:border-gray-800">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-5">Iniciar sesiÃ³n</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-5">Iniciar sesión</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -73,13 +72,13 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="label" htmlFor="password">ContraseÃ±a</label>
+              <label className="label" htmlFor="password">Contraseña</label>
               <div className="relative">
                 <input
                   id="password"
                   type={showPass ? "text" : "password"}
                   className="input pr-10"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -107,7 +106,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-5">
-            Â¿No tienes cuenta?{" "}
+            ¿No tienes cuenta?{" "}
             <Link href="/registro" className="text-primary-600 dark:text-primary-400 font-semibold">
               Registrarse
             </Link>
@@ -117,4 +116,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

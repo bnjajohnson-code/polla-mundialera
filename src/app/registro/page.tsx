@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -13,6 +13,7 @@ export default function RegistroPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -40,7 +41,7 @@ export default function RegistroPage() {
       router.push("/fixture");
       router.refresh();
     } catch {
-      setError("Error de conexiÃ³n.");
+      setError("Error de conexión.");
       setLoading(false);
     }
   };
@@ -59,7 +60,7 @@ export default function RegistroPage() {
             className="h-12 w-auto mx-auto mb-4 brightness-0 invert"
           />
           <h1 className="text-2xl font-black text-white">Polla Mundialera</h1>
-          <p className="text-primary-200 dark:text-gray-400 text-sm mt-1">Crea tu cuenta con el cÃ³digo de invitaciÃ³n</p>
+          <p className="text-primary-200 dark:text-gray-400 text-sm mt-1">Crea tu cuenta con el código de invitación</p>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl border border-gray-100 dark:border-gray-800">
@@ -68,7 +69,7 @@ export default function RegistroPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label" htmlFor="nombre">Tu nombre</label>
-              <input id="nombre" name="nombre" type="text" className="input" placeholder="Ej: Juan PÃ©rez"
+              <input id="nombre" name="nombre" type="text" className="input" placeholder="Ej: Juan Pérez"
                 value={form.nombre} onChange={handleChange} required minLength={2} />
             </div>
 
@@ -79,10 +80,10 @@ export default function RegistroPage() {
             </div>
 
             <div>
-              <label className="label" htmlFor="password">ContraseÃ±a</label>
+              <label className="label" htmlFor="password">Contraseña</label>
               <div className="relative">
                 <input id="password" name="password" type={showPass ? "text" : "password"}
-                  className="input pr-10" placeholder="MÃ­nimo 6 caracteres"
+                  className="input pr-10" placeholder="Mínimo 6 caracteres"
                   value={form.password} onChange={handleChange} required minLength={6} />
                 <button type="button" onClick={() => setShowPass(!showPass)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -92,13 +93,13 @@ export default function RegistroPage() {
             </div>
 
             <div>
-              <label className="label" htmlFor="codigoInvitacion">CÃ³digo de invitaciÃ³n</label>
+              <label className="label" htmlFor="codigoInvitacion">Código de invitación</label>
               <input id="codigoInvitacion" name="codigoInvitacion" type="text"
                 className="input uppercase tracking-widest font-mono" placeholder="XXXXXXXX"
                 value={form.codigoInvitacion}
                 onChange={(e) => setForm({ ...form, codigoInvitacion: e.target.value.toUpperCase() })}
                 required />
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PÃ­delo a quien organizÃ³ la polla.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Pídelo a quien organizó la polla.</p>
             </div>
 
             {error && (
@@ -113,9 +114,9 @@ export default function RegistroPage() {
           </form>
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-5">
-            Â¿Ya tienes cuenta?{" "}
+            ¿Ya tienes cuenta?{" "}
             <Link href="/login" className="text-primary-600 dark:text-primary-400 font-semibold">
-              Iniciar sesiÃ³n
+              Iniciar sesión
             </Link>
           </p>
         </div>
@@ -123,4 +124,3 @@ export default function RegistroPage() {
     </div>
   );
 }
-
