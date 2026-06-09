@@ -88,6 +88,21 @@ export default async function TablaPage() {
       </div>
 
       <StandingsTable tabla={tabla} />
+
+      {tabla.length > 0 && (
+        <div className="mt-4 card p-4 text-center">
+          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide font-semibold mb-1">Pozo acumulado</p>
+          <p className="text-2xl font-black text-gray-900 dark:text-gray-100">
+            ${(tabla.length * 10000).toLocaleString("es-CL")}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            {tabla.length} participante{tabla.length !== 1 ? "s" : ""} × $10.000
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            🥇 1° lugar: 60% &nbsp;·&nbsp; 🥈 2° lugar: 30% &nbsp;·&nbsp; 🥉 3° lugar: 10%
+          </p>
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
 import { formatFechaHora, estaBlockeado, FASE_LABELS } from "@/lib/utils";
+import { formatTeamDisplay } from "@/lib/teams";
 import { calcularPuntos } from "@/lib/scoring";
 import { Star, Lock } from "lucide-react";
 import type { FasePartido } from "@prisma/client";
@@ -36,7 +37,7 @@ export default async function PartidoPage({ params }: { params: { id: string } }
 
   return (
     <AppShell
-      title={`${partido.equipoLocal} vs ${partido.equipoVisitante}`}
+      title={`${formatTeamDisplay(partido.equipoLocal, partido.codigoLocal)} vs ${formatTeamDisplay(partido.equipoVisitante, partido.codigoVisitante)}`}
       showBack
       backHref="/fixture"
     >
@@ -52,7 +53,7 @@ export default async function PartidoPage({ params }: { params: { id: string } }
         {finalizado && tieneResultado ? (
           <div className="flex items-center justify-center gap-6">
             <div className="text-center flex-1">
-              <p className="font-bold text-gray-900 dark:text-gray-100 text-lg">{partido.equipoLocal}</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100">{formatTeamDisplay(partido.equipoLocal, partido.codigoLocal)}</p>
             </div>
             <div className="text-center">
               <span className="text-4xl font-black tabular-nums text-primary-900 dark:text-primary-300">
@@ -65,14 +66,14 @@ export default async function PartidoPage({ params }: { params: { id: string } }
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Resultado final (90 min)</p>
             </div>
             <div className="text-center flex-1">
-              <p className="font-bold text-gray-900 dark:text-gray-100 text-lg">{partido.equipoVisitante}</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100">{formatTeamDisplay(partido.equipoVisitante, partido.codigoVisitante)}</p>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-4">
-            <p className="font-bold text-gray-900 dark:text-gray-100 text-lg">{partido.equipoLocal}</p>
+            <p className="font-bold text-gray-900 dark:text-gray-100">{formatTeamDisplay(partido.equipoLocal, partido.codigoLocal)}</p>
             <span className="text-gray-400 dark:text-gray-600 font-bold">vs</span>
-            <p className="font-bold text-gray-900 dark:text-gray-100 text-lg">{partido.equipoVisitante}</p>
+            <p className="font-bold text-gray-900 dark:text-gray-100">{formatTeamDisplay(partido.equipoVisitante, partido.codigoVisitante)}</p>
           </div>
         )}
 

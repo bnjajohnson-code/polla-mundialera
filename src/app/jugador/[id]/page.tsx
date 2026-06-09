@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
 import { formatFechaHora, FASE_LABELS } from "@/lib/utils";
+import { formatTeamDisplay } from "@/lib/teams";
 import { Star, Trophy, Target } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +73,7 @@ export default async function JugadorPage({ params }: { params: { id: string } }
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                    {partido.equipoLocal} vs {partido.equipoVisitante}
+                    {formatTeamDisplay(partido.equipoLocal, partido.codigoLocal)} vs {formatTeamDisplay(partido.equipoVisitante, partido.codigoVisitante)}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     {FASE_LABELS[partido.fase] ?? partido.fase} · {formatFechaHora(partido.fechaHoraUtc)}

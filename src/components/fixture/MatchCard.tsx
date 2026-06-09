@@ -9,6 +9,7 @@ import {
   FASE_LABELS,
   cn,
 } from "@/lib/utils";
+import { formatTeamDisplay } from "@/lib/teams";
 import { Clock, ChevronRight, Star } from "lucide-react";
 
 interface Partido {
@@ -69,7 +70,7 @@ export function MatchCard({ partido }: Props) {
       {finalizado ? (
         <div className="flex items-center justify-between mb-3">
           <div className="flex-1">
-            <p className="font-semibold text-gray-900 dark:text-gray-100">{partido.equipoLocal}</p>
+            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{formatTeamDisplay(partido.equipoLocal, partido.codigoLocal)}</p>
           </div>
           <div className="flex items-center gap-2 px-3">
             <span className="text-2xl font-black tabular-nums dark:text-gray-100">{partido.golesLocal}</span>
@@ -77,14 +78,14 @@ export function MatchCard({ partido }: Props) {
             <span className="text-2xl font-black tabular-nums dark:text-gray-100">{partido.golesVisitante}</span>
           </div>
           <div className="flex-1 text-right">
-            <p className="font-semibold text-gray-900 dark:text-gray-100">{partido.equipoVisitante}</p>
+            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{formatTeamDisplay(partido.equipoVisitante, partido.codigoVisitante)}</p>
           </div>
         </div>
       ) : (
         <div className="flex items-center justify-between mb-3">
-          <p className="font-semibold text-gray-900 dark:text-gray-100">{partido.equipoLocal}</p>
+          <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{formatTeamDisplay(partido.equipoLocal, partido.codigoLocal)}</p>
           <span className="text-gray-300 dark:text-gray-600 font-bold">vs</span>
-          <p className="font-semibold text-gray-900 dark:text-gray-100 text-right">{partido.equipoVisitante}</p>
+          <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm text-right">{formatTeamDisplay(partido.equipoVisitante, partido.codigoVisitante)}</p>
         </div>
       )}
 
@@ -109,6 +110,20 @@ export function MatchCard({ partido }: Props) {
         >
           Ver pronósticos del grupo <ChevronRight className="w-4 h-4" />
         </Link>
+      ) : bloqueado ? (
+        <div className="space-y-2">
+          {tienePronostico && (
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+              Mi pronóstico: <strong className="text-gray-800 dark:text-gray-200">{pred!.golesLocal} – {pred!.golesVisitante}</strong>
+            </div>
+          )}
+          <Link
+            href={`/partido/${partido.id}`}
+            className="flex items-center justify-center gap-1 text-sm text-primary-600 dark:text-primary-400 font-medium py-1"
+          >
+            Ver pronósticos del grupo <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
       ) : (
         <PredictionStepper
           partidoId={partido.id}
