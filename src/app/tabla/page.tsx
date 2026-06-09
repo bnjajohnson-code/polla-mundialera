@@ -14,6 +14,7 @@ export default async function TablaPage() {
   if (!session) redirect("/login");
 
   const usuarios = await prisma.user.findMany({
+    where: { rol: "jugador" },
     include: {
       predicciones: {
         where: { partido: { estado: "finalizado" } },
