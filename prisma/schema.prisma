@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  jugador
+}
+
+enum FasePartido {
+  grupos
+  dieciseisavos
+  octavos
+  cuartos
+  semifinal
+  tercer_puesto
+  final
+}
+
+enum EstadoPartido {
+  programado
+  en_juego
+  finalizado
+  aplazado
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String   @unique
+  password  String
+  rol       Role     @default(jugador)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  predicciones    Prediccion[]
+  notificaciones  Notificacion[]
+  pushSubs        PushSubscription[]
+  notifPrefs      NotifPreferencia?
+
+  @@map("users")
+}
+
+model Partido {
+  id              String        @id @default(cuid())
+  externalId      Int?          @unique
+  fase            FasePartido
+  grupo           String?
+  jornada         Int?
+  equipoLocal     String
+  equipoVisitante String
+  codigoLocal     String?
+  codigoVisitante String?
+  fechaHoraUtc    DateTime
+  estado          EstadoPartido @default(programado)
+  golesLocal      Int?
+  golesVisitante  Int?
+  // Marcador de 90 min (para fases eliminatorias con alargue/penales)
+  golesLocalReg   Int?
+  golesVisitanteReg Int?
+  // Indica si el resultado fue ingresado manualmente por el admin
+  resultadoManual Boolean       @default(false)
+
+  predicciones    Prediccion[]
+
+  @@index([fechaHoraUtc])
+  @@index([estado])
+  @@map("partidos")
+}
+
+model Prediccion {
+  id             String   @id @default(cuid())
+  userId         String
+  partidoId      String
+  golesLocal     Int
+  golesVisitante Int
+  puntos         Int?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partido Partido @relation(fields: [partidoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, partidoId])
+  @@index([userId])
+  @@index([partidoId])
+  @@map("predicciones")
+}
+
+model Configuracion {
+  id               String   @id @default(cuid())
+  nombrePolla      String   @default("Polla Mundialera 2026")
+  codigoInvitacion String   @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("configuracion")
+}
+
+model Notificacion {
+  id        String   @id @default(cuid())
+  userId    String
+  tipo      String   // 'faltante_24h' | 'faltante_2h' | 'inicio_partido'
+  partidoId String?
+  canal     String   // 'email' | 'push' | 'in_app'
+  enviado   Boolean  @default(false)
+  leido     Boolean  @default(false)
+  titulo    String
+  mensaje   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, leido])
+  @@index([tipo, partidoId])
+  @@map("notificaciones")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}
+
+model NotifPreferencia {
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  emailEnabled     Boolean @default(true)
+  pushEnabled      Boolean @default(false)
+  avisoInicio      Boolean @default(true)
+  avisoFaltante24h Boolean @default(true)
+  avisoFaltante2h  Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notif_preferencias")
+}

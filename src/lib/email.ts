@@ -1,0 +1,106 @@
+import { Resend } from "resend";
+import { formatHoraPartido, formatFechaPartido } from "@/lib/utils";
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const FROM = process.env.RESEND_FROM_EMAIL ?? "Polla Mundialera <noreply@pollafutbol.com>";
+
+interface MatchInfo {
+  equipoLocal: string;
+  equipoVisitante: string;
+  fechaHoraUtc: Date;
+}
+
+export async function sendEmailFaltantePronostico(
+  to: string,
+  nombre: string,
+  partidos: MatchInfo[],
+  horasAntes: 24 | 2
+): Promise<void> {
+  const listaPartidos = partidos
+    .map(
+      (p) =>
+        `<li><strong>${p.equipoLocal} vs ${p.equipoVisitante}</strong> — ${formatFechaPartido(p.fechaHoraUtc)} a las ${formatHoraPartido(p.fechaHoraUtc)} (Santiago)</li>`
+    )
+    .join("\n");
+
+  const asunto =
+    horasAntes === 24
+      ? `⚽ Te faltan ${partidos.length} pronóstico(s) para mañana`
+      : `⏰ ¡Últimas ${horasAntes} horas! Pronósticos pendientes`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px;">
+  <div style="max-width: 560px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+    <div style="background: linear-gradient(135deg, #1d4ed8, #2563eb); padding: 32px 24px; text-align: center;">
+      <h1 style="color: white; margin: 0; font-size: 24px;">⚽ Polla Mundialera 2026</h1>
+    </div>
+    <div style="padding: 28px 24px;">
+      <p style="color: #374151; font-size: 16px;">Hola <strong>${nombre}</strong>,</p>
+      <p style="color: #374151; font-size: 16px;">
+        Te faltan pronósticos para los siguientes partidos que inician en menos de <strong>${horasAntes} hora(s)</strong>:
+      </p>
+      <ul style="color: #374151; font-size: 15px; line-height: 2;">
+        ${listaPartidos}
+      </ul>
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${process.env.NEXTAUTH_URL}/fixture"
+           style="background: #2563eb; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+          Ingresar pronósticos ahora →
+        </a>
+      </div>
+      <p style="color: #9ca3af; font-size: 13px; text-align: center;">
+        Los pronósticos se bloquean al inicio de cada partido.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  if (!resend) { console.log("[email] RESEND_API_KEY no configurado, email omitido"); return; }
+  await resend.emails.send({ from: FROM, to, subject: asunto, html });
+}
+
+export async function sendEmailInicioPartido(
+  to: string,
+  nombre: string,
+  partido: MatchInfo
+): Promise<void> {
+  const asunto = `🔔 En 1 hora: ${partido.equipoLocal} vs ${partido.equipoVisitante}`;
+  const hora = formatHoraPartido(partido.fechaHoraUtc);
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px;">
+  <div style="max-width: 560px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+    <div style="background: linear-gradient(135deg, #1d4ed8, #2563eb); padding: 32px 24px; text-align: center;">
+      <h1 style="color: white; margin: 0; font-size: 24px;">⚽ Polla Mundialera 2026</h1>
+    </div>
+    <div style="padding: 28px 24px; text-align: center;">
+      <p style="color: #374151; font-size: 16px;">Hola <strong>${nombre}</strong>,</p>
+      <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">En 1 hora comienza</p>
+      <h2 style="color: #1e3a8a; font-size: 26px; margin: 8px 0;">
+        ${partido.equipoLocal} vs ${partido.equipoVisitante}
+      </h2>
+      <p style="color: #374151; font-size: 18px; font-weight: bold; margin: 4px 0;">🕐 ${hora} (Santiago)</p>
+      <div style="margin: 24px 0;">
+        <a href="${process.env.NEXTAUTH_URL}/fixture"
+           style="background: #2563eb; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+          Ver mis pronósticos →
+        </a>
+      </div>
+      <p style="color: #9ca3af; font-size: 13px;">
+        Recuerdas que los pronósticos se bloquean al inicio del partido.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  if (!resend) { console.log("[email] RESEND_API_KEY no configurado, email omitido"); return; }
+  await resend.emails.send({ from: FROM, to, subject: asunto, html });
+}
