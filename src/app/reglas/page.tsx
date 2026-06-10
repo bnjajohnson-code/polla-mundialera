@@ -114,7 +114,7 @@ export default async function ReglasPage() {
             Resultado real: 🇦🇷 Argentina <strong>2 – 1</strong> 🇲🇽 México · Fase de grupos
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Puntajes posibles: <strong>0, 2, 5, 6, 7 o 10</strong>. No existen puntajes de 1, 3, 4, 8 ni 9: acertar la diferencia siempre implica acertar el resultado, y acertar ambos goles implica acertar todo.
+            La diferencia de goles se compara en valor absoluto (ganar por 1 es igual sin importar quién gane). Puntajes posibles: <strong>0, 1, 2, 3, 5, 6, 7 o 10</strong>.
           </p>
         </div>
 
@@ -161,7 +161,23 @@ export default async function ReglasPage() {
               color: "text-blue-600 dark:text-blue-400",
             },
             {
+              pred: "0 – 1",
+              pts: 3,
+              star: false,
+              checks: ["Goles visit. ✓", "Diferencia ✓"],
+              label: "Goles visitante + diferencia",
+              color: "text-gray-600 dark:text-gray-400",
+            },
+            {
               pred: "2 – 3",
+              pts: 3,
+              star: false,
+              checks: ["Goles local ✓", "Diferencia ✓"],
+              label: "Goles local + diferencia",
+              color: "text-gray-600 dark:text-gray-400",
+            },
+            {
+              pred: "2 – 4",
               pts: 2,
               star: false,
               checks: ["Goles local ✓"],
@@ -169,11 +185,11 @@ export default async function ReglasPage() {
               color: "text-gray-600 dark:text-gray-400",
             },
             {
-              pred: "0 – 1",
-              pts: 2,
+              pred: "1 – 2",
+              pts: 1,
               star: false,
-              checks: ["Goles visit. ✓"],
-              label: "Solo goles visitante",
+              checks: ["Diferencia ✓"],
+              label: "Solo diferencia",
               color: "text-gray-600 dark:text-gray-400",
             },
             {

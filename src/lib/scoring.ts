@@ -52,7 +52,7 @@ export function calcularPuntos(
   const aciertoLocal = pronosticoLocal === resultadoLocal;
   const aciertoVisitante = pronosticoVisitante === resultadoVisitante;
   const aciertoDiferencia =
-    pronosticoLocal - pronosticoVisitante === resultadoLocal - resultadoVisitante;
+    Math.abs(pronosticoLocal - pronosticoVisitante) === Math.abs(resultadoLocal - resultadoVisitante);
 
   const puntos =
     (aciertoResultado ? 5 * mult : 0) +
