@@ -113,6 +113,9 @@ export default async function ReglasPage() {
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
             Resultado real: 🇦🇷 Argentina <strong>2 – 0</strong> 🇲🇽 México · Fase de grupos
           </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            Nota: acertar la diferencia de goles siempre implica acertar el resultado, por lo que no existe el caso "solo diferencia".
+          </p>
         </div>
 
         <div className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -163,6 +166,14 @@ export default async function ReglasPage() {
               star: false,
               checks: ["Goles local ✓"],
               label: "Solo goles local",
+              color: "text-gray-600 dark:text-gray-400",
+            },
+            {
+              pred: "0 – 0",
+              pts: 2,
+              star: false,
+              checks: ["Goles visit. ✓"],
+              label: "Solo goles visitante",
               color: "text-gray-600 dark:text-gray-400",
             },
             {
