@@ -127,7 +127,7 @@ export default async function ReglasPage() {
             },
             {
               pred: "3 – 0",
-              pts: 8,
+              pts: 7,
               star: false,
               checks: ["Resultado ✓", "Goles visit. ✓", "Diferencia ✗"],
               label: "Resultado + visitante",
@@ -159,6 +159,14 @@ export default async function ReglasPage() {
             },
             {
               pred: "3 – 1",
+              pts: 6,
+              star: false,
+              checks: ["Resultado ✓", "Diferencia ✓"],
+              label: "Resultado + diferencia",
+              color: "text-blue-600 dark:text-blue-400",
+            },
+            {
+              pred: "4 – 1",
               pts: 5,
               star: false,
               checks: ["Resultado ✓"],
