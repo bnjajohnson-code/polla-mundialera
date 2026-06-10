@@ -53,32 +53,53 @@ interface ApiStandingsResponse {
   }>;
 }
 
-export async function fetchMatches(): Promise<ApiMatch[]> {
-  const url = `${BASE_URL}/competitions/${COMPETITION_CODE}/matches`;
+function logRateLimit(res: Response) {
+  const available = res.headers.get("X-Requests-Available-Minute");
+  const reset = res.headers.get("X-RequestCounter-Reset");
+  if (available !== null) {
+    console.log(`[football-data] requests available this minute: ${available} (resets: ${reset})`);
+  }
+}
+
+async function apiFetch(url: string): Promise<Response> {
   const res = await fetch(url, {
     headers: HEADERS,
     next: { revalidate: 0 },
   });
 
+  logRateLimit(res);
+
+  if (res.status === 429) {
+    const resetHeader = res.headers.get("X-RequestCounter-Reset");
+    const waitMs = resetHeader ? Math.max(0, Number(resetHeader) * 1000 - Date.now()) + 1000 : 61000;
+    console.warn(`[football-data] rate limited — waiting ${Math.round(waitMs / 1000)}s`);
+    await new Promise((r) => setTimeout(r, waitMs));
+    // un solo reintento tras esperar
+    const retry = await fetch(url, { headers: HEADERS, next: { revalidate: 0 } });
+    logRateLimit(retry);
+    if (!retry.ok) {
+      throw new Error(`football-data.org error ${retry.status} (retry): ${await retry.text()}`);
+    }
+    return retry;
+  }
+
   if (!res.ok) {
     throw new Error(`football-data.org error ${res.status}: ${await res.text()}`);
   }
 
+  return res;
+}
+
+export async function fetchMatches(): Promise<ApiMatch[]> {
+  const url = `${BASE_URL}/competitions/${COMPETITION_CODE}/matches`;
+  const res = await apiFetch(url);
   const data: ApiMatchesResponse = await res.json();
   return data.matches;
 }
 
 export async function fetchMatch(externalId: number): Promise<ApiMatch> {
   const url = `${BASE_URL}/matches/${externalId}`;
-  const res = await fetch(url, {
-    headers: HEADERS,
-    next: { revalidate: 0 },
-  });
-
-  if (!res.ok) {
-    throw new Error(`football-data.org error ${res.status}: ${await res.text()}`);
-  }
-
+  const res = await apiFetch(url);
   return res.json();
 }
 
