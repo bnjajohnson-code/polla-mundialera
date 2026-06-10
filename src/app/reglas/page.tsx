@@ -111,17 +111,17 @@ export default async function ReglasPage() {
         <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
           <h3 className="font-bold text-gray-800 dark:text-gray-200">Ejemplos prácticos</h3>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-            Resultado real: 🇦🇷 Argentina <strong>2 – 0</strong> 🇲🇽 México · Fase de grupos
+            Resultado real: 🇦🇷 Argentina <strong>2 – 1</strong> 🇲🇽 México · Fase de grupos
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Nota: acertar la diferencia de goles siempre implica acertar el resultado, por lo que no existe el caso "solo diferencia".
+            Puntajes posibles: <strong>0, 2, 5, 6, 7 o 10</strong>. No existen puntajes de 1, 3, 4, 8 ni 9: acertar la diferencia siempre implica acertar el resultado, y acertar ambos goles implica acertar todo.
           </p>
         </div>
 
         <div className="divide-y divide-gray-50 dark:divide-gray-800">
           {[
             {
-              pred: "2 – 0",
+              pred: "2 – 1",
               pts: 10,
               star: true,
               checks: ["Resultado ✓", "Goles local ✓", "Goles visit. ✓", "Diferencia ✓"],
@@ -129,23 +129,23 @@ export default async function ReglasPage() {
               color: "text-yellow-600 dark:text-yellow-400",
             },
             {
-              pred: "3 – 0",
-              pts: 7,
-              star: false,
-              checks: ["Resultado ✓", "Goles visit. ✓", "Diferencia ✗"],
-              label: "Resultado + visitante",
-              color: "text-green-600 dark:text-green-400",
-            },
-            {
-              pred: "2 – 1",
+              pred: "2 – 0",
               pts: 7,
               star: false,
               checks: ["Resultado ✓", "Goles local ✓", "Diferencia ✗"],
-              label: "Resultado + local",
+              label: "Resultado + goles local",
               color: "text-green-600 dark:text-green-400",
             },
             {
-              pred: "4 – 2",
+              pred: "3 – 1",
+              pts: 7,
+              star: false,
+              checks: ["Resultado ✓", "Goles visit. ✓", "Diferencia ✗"],
+              label: "Resultado + goles visitante",
+              color: "text-green-600 dark:text-green-400",
+            },
+            {
+              pred: "3 – 2",
               pts: 6,
               star: false,
               checks: ["Resultado ✓", "Diferencia ✓"],
@@ -153,7 +153,7 @@ export default async function ReglasPage() {
               color: "text-blue-600 dark:text-blue-400",
             },
             {
-              pred: "4 – 1",
+              pred: "3 – 0",
               pts: 5,
               star: false,
               checks: ["Resultado ✓"],
@@ -161,7 +161,7 @@ export default async function ReglasPage() {
               color: "text-blue-600 dark:text-blue-400",
             },
             {
-              pred: "2 – 2",
+              pred: "2 – 3",
               pts: 2,
               star: false,
               checks: ["Goles local ✓"],
@@ -169,7 +169,7 @@ export default async function ReglasPage() {
               color: "text-gray-600 dark:text-gray-400",
             },
             {
-              pred: "0 – 0",
+              pred: "0 – 1",
               pts: 2,
               star: false,
               checks: ["Goles visit. ✓"],
@@ -177,7 +177,7 @@ export default async function ReglasPage() {
               color: "text-gray-600 dark:text-gray-400",
             },
             {
-              pred: "1 – 1",
+              pred: "0 – 0",
               pts: 0,
               star: false,
               checks: ["Sin aciertos"],
