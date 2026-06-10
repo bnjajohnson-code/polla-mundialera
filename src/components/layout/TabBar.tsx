@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, User, Settings } from "lucide-react";
+import { Home, Trophy, User, Settings, BookOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/fixture", label: "Fixture", icon: Home },
   { href: "/tabla", label: "Tabla", icon: Trophy },
+  { href: "/reglas", label: "Reglas", icon: BookOpen },
   { href: "/perfil", label: "Mi Perfil", icon: User },
 ];
 

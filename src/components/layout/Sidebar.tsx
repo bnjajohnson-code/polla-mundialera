@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, User, Settings, Bell, BellDot } from "lucide-react";
+import { Home, Trophy, User, Settings, Bell, BellDot, BookOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -12,6 +12,7 @@ import { ThemeToggle } from "./ThemeToggle";
 const navItems = [
   { href: "/fixture", label: "Fixture", icon: Home },
   { href: "/tabla", label: "Tabla", icon: Trophy },
+  { href: "/reglas", label: "Reglas", icon: BookOpen },
   { href: "/perfil", label: "Mi Perfil", icon: User },
 ];
 
@@ -52,7 +53,7 @@ export function Sidebar() {
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-wider px-3 mb-2">
-          MenÃº
+          Menú
         </p>
         {allItems.map((item) => {
           const Icon = item.icon;
