@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Bell, BellDot } from "lucide-react";
+import { Bell, BellDot, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -30,8 +30,9 @@ export function Header({ title, showBack, backHref }: Props) {
     <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm dark:bg-gray-900 dark:border-gray-800">
       <div className="flex items-center h-14 px-4 max-w-full lg:hidden">
         {showBack && backHref ? (
-          <Link href={backHref} className="mr-3 text-primary-600 font-medium text-sm">
-            â† Volver
+          <Link href={backHref} className="mr-3 text-primary-600 flex items-center gap-1 font-medium text-sm">
+            <ArrowLeft className="w-4 h-4" />
+            Volver
           </Link>
         ) : (
           <div className="flex items-center mr-auto">
