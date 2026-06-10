@@ -102,29 +102,8 @@ export function MatchCard({ partido }: Props) {
         </div>
       )}
 
-      {/* Stepper o ver detalle */}
-      {finalizado ? (
-        <Link
-          href={`/partido/${partido.id}`}
-          className="flex items-center justify-center gap-1 text-sm text-primary-600 dark:text-primary-400 font-medium py-1"
-        >
-          Ver pronósticos del grupo <ChevronRight className="w-4 h-4" />
-        </Link>
-      ) : bloqueado ? (
-        <div className="space-y-2">
-          {tienePronostico && (
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-              Mi pronóstico: <strong className="text-gray-800 dark:text-gray-200">{pred!.golesLocal} – {pred!.golesVisitante}</strong>
-            </div>
-          )}
-          <Link
-            href={`/partido/${partido.id}`}
-            className="flex items-center justify-center gap-1 text-sm text-primary-600 dark:text-primary-400 font-medium py-1"
-          >
-            Ver pronósticos del grupo <ChevronRight className="w-4 h-4" />
-          </Link>
-        </div>
-      ) : (
+      {/* Stepper (solo si el partido aún acepta pronósticos) */}
+      {!bloqueado && (
         <PredictionStepper
           partidoId={partido.id}
           bloqueado={bloqueado}
@@ -134,6 +113,21 @@ export function MatchCard({ partido }: Props) {
           equipoVisitante={partido.equipoVisitante}
         />
       )}
+
+      {/* Pronóstico propio (bloqueado pero no finalizado) */}
+      {bloqueado && !finalizado && tienePronostico && (
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400 mb-2">
+          Mi pronóstico: <strong className="text-gray-800 dark:text-gray-200">{pred!.golesLocal} – {pred!.golesVisitante}</strong>
+        </div>
+      )}
+
+      {/* Link siempre visible */}
+      <Link
+        href={`/partido/${partido.id}`}
+        className="flex items-center justify-center gap-1 text-sm text-primary-600 dark:text-primary-400 font-medium py-1 mt-1"
+      >
+        Ver pronósticos del grupo <ChevronRight className="w-4 h-4" />
+      </Link>
     </div>
   );
 }
