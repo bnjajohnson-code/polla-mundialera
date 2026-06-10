@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export function PredictionStepper({
   equipoVisitante,
   onSaved,
 }: Props) {
+  const router = useRouter();
   const [local, setLocal] = useState(initialLocal ?? 0);
   const [visitante, setVisitante] = useState(initialVisitante ?? 0);
   const [saved, setSaved] = useState(initialLocal !== undefined);
@@ -47,6 +49,7 @@ export function PredictionStepper({
         }
         setSaved(true);
         onSaved?.(local, visitante);
+        router.refresh();
       } catch {
         setError("Error de conexión");
       }
