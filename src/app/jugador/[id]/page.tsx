@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
 import { formatFechaHora, FASE_LABELS } from "@/lib/utils";
 import { formatTeamDisplay } from "@/lib/teams";
+import { calcularPuntos } from "@/lib/scoring";
+import type { FasePartido } from "@prisma/client";
 import { Star, Trophy, Target } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +67,17 @@ export default async function JugadorPage({ params }: { params: { id: string } }
           {user.predicciones.map((pred) => {
             const partido = pred.partido;
             const finalizado = partido.estado === "finalizado";
+            const tieneResultado = partido.golesLocal !== null && partido.golesVisitante !== null;
+            const detalle =
+              finalizado && tieneResultado
+                ? calcularPuntos(
+                    pred.golesLocal,
+                    pred.golesVisitante,
+                    partido.golesLocal!,
+                    partido.golesVisitante!,
+                    partido.fase as FasePartido
+                  )
+                : null;
 
             return (
               <div
@@ -78,13 +91,24 @@ export default async function JugadorPage({ params }: { params: { id: string } }
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     {FASE_LABELS[partido.fase] ?? partido.fase} · {formatFechaHora(partido.fechaHoraUtc)}
                   </p>
+                  {detalle && (
+                    <div className="flex flex-wrap gap-x-2 text-xs mt-0.5">
+                      {detalle.aciertoResultado && <span className="text-green-600 dark:text-green-400">✓ Resultado</span>}
+                      {detalle.aciertoLocal && <span className="text-green-600 dark:text-green-400">✓ Goles local</span>}
+                      {detalle.aciertoVisitante && <span className="text-green-600 dark:text-green-400">✓ Goles visit.</span>}
+                      {detalle.aciertoDiferencia && <span className="text-green-600 dark:text-green-400">✓ Diferencia</span>}
+                      {!detalle.aciertoResultado && !detalle.aciertoLocal && !detalle.aciertoVisitante && !detalle.aciertoDiferencia && (
+                        <span className="text-gray-400 dark:text-gray-600">Sin aciertos</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-right shrink-0">
                   <p className="font-bold text-sm tabular-nums text-gray-700 dark:text-gray-300">
                     {pred.golesLocal} – {pred.golesVisitante}
                   </p>
-                  {finalizado && partido.golesLocal !== null && (
+                  {finalizado && tieneResultado && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
                       Real: {partido.golesLocal}–{partido.golesVisitante}
                     </p>
@@ -94,7 +118,7 @@ export default async function JugadorPage({ params }: { params: { id: string } }
                 {finalizado && (
                   <div className="shrink-0 flex items-center gap-1 w-12 justify-end">
                     <Star
-                      className={`w-4 h-4 ${pred.puntos === maxPorFase(partido.fase) ? "fill-gold-400 stroke-gold-500" : "stroke-gray-300 dark:stroke-gray-600"}`}
+                      className={`w-4 h-4 ${detalle?.pleno ? "fill-gold-400 stroke-gold-500" : "stroke-gray-300 dark:stroke-gray-600"}`}
                     />
                     <span className="font-bold text-sm tabular-nums dark:text-gray-200">{pred.puntos ?? 0}</span>
                   </div>
