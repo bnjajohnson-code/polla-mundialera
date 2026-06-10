@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { Loader2, RefreshCw, Trash2, Copy, Check, Save } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell } from "lucide-react";
 import { AdminMatchEditor } from "@/components/admin/AdminMatchEditor";
 
 interface User {
@@ -43,6 +43,10 @@ export default function AdminPage() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [savingCodigo, setSavingCodigo] = useState(false);
   const [codigoResult, setCodigoResult] = useState<string | null>(null);
+  const [pushTitulo, setPushTitulo] = useState("⚽ Polla Mundialera");
+  const [pushMensaje, setPushMensaje] = useState("");
+  const [sendingPush, setSendingPush] = useState(false);
+  const [pushResult, setPushResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -126,6 +130,25 @@ export default function AdminPage() {
     setTimeout(() => setCodigoResult(null), 3000);
   };
 
+  const handleSendPush = async () => {
+    if (!pushMensaje.trim()) return;
+    setSendingPush(true);
+    setPushResult(null);
+    const res = await fetch("/api/admin/push-test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titulo: pushTitulo, mensaje: pushMensaje }),
+    });
+    const data = await res.json();
+    setSendingPush(false);
+    if (data.ok) {
+      setPushResult(`✓ Enviado a ${data.enviadas}/${data.total} dispositivo(s)`);
+    } else {
+      setPushResult(`✗ ${data.error ?? "Error al enviar"}`);
+    }
+    setTimeout(() => setPushResult(null), 5000);
+  };
+
   const handleSaveConfig = async () => {
     setSavingConfig(true);
     await fetch("/api/admin/settings", {
@@ -173,6 +196,47 @@ export default function AdminPage() {
 
       {/* Editar resultado manual */}
       <AdminMatchEditor onSaved={loadData} />
+
+      {/* Push de prueba */}
+      <div className="card p-4 mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Bell className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+          <h3 className="font-bold text-gray-800 dark:text-gray-200">Enviar notificación push</h3>
+        </div>
+        <div className="space-y-2">
+          <div>
+            <label className="label">Título</label>
+            <input
+              className="input w-full"
+              value={pushTitulo}
+              onChange={(e) => setPushTitulo(e.target.value)}
+              placeholder="Título de la notificación"
+            />
+          </div>
+          <div>
+            <label className="label">Mensaje</label>
+            <input
+              className="input w-full"
+              value={pushMensaje}
+              onChange={(e) => setPushMensaje(e.target.value)}
+              placeholder="Escribe el mensaje..."
+            />
+          </div>
+          <button
+            onClick={handleSendPush}
+            disabled={sendingPush || !pushMensaje.trim()}
+            className="btn-primary flex items-center gap-2 mt-1"
+          >
+            {sendingPush ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+            {sendingPush ? "Enviando..." : "Enviar a todos"}
+          </button>
+          {pushResult && (
+            <p className={`text-xs mt-1 ${pushResult.startsWith("✓") ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
+              {pushResult}
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Configuración de la polla */}
       {config && (
