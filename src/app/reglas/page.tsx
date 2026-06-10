@@ -32,7 +32,7 @@ export default async function ReglasPage() {
         <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-start gap-2">
             <span className="text-green-500 font-bold mt-0.5">✓</span>
-            <p>Puedes ingresar o modificar tu pronóstico <strong className="text-gray-800 dark:text-gray-200">hasta 1 hora antes del inicio</strong> del partido.</p>
+            <p>Puedes ingresar o modificar tu pronóstico <strong className="text-gray-800 dark:text-gray-200">hasta 10 minutos antes del inicio</strong> del partido.</p>
           </div>
           <div className="flex items-start gap-2">
             <span className="text-red-500 font-bold mt-0.5">✗</span>

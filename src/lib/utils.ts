@@ -84,9 +84,12 @@ export function flagUrl(countryCode: string): string {
 }
 
 /** Verifica si un partido está bloqueado (ya inició o está en juego/finalizado). */
+const MINUTOS_ANTES_CIERRE = 10;
+
 export function estaBlockeado(fechaHoraUtc: Date | string, estado: string): boolean {
   if (estado === "en_juego" || estado === "finalizado" || estado === "aplazado") {
     return true;
   }
-  return new Date(fechaHoraUtc) <= new Date();
+  const cierreMs = new Date(fechaHoraUtc).getTime() - MINUTOS_ANTES_CIERRE * 60 * 1000;
+  return Date.now() >= cierreMs;
 }
