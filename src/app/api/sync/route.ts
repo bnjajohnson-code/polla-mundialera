@@ -91,8 +91,16 @@ export async function POST(req: Request) {
         const yaFinalizado = existente.estado === "finalizado";
         const ahoraFinalizado = estado === "finalizado";
         const golesDisponibles = golesLocal !== null && golesVisitante !== null;
+        // Recalcular también si la API corrige el marcador de un partido ya finalizado
+        const marcadorCambio =
+          existente.golesLocal !== golesLocal || existente.golesVisitante !== golesVisitante;
 
-        if (!yaFinalizado && ahoraFinalizado && golesDisponibles && !existente.resultadoManual) {
+        if (
+          ahoraFinalizado &&
+          golesDisponibles &&
+          !existente.resultadoManual &&
+          (!yaFinalizado || marcadorCambio)
+        ) {
           await recalcularYGuardar(existente.id, golesLocal!, golesVisitante!, fase);
         }
 

@@ -93,3 +93,10 @@ export function estaBlockeado(fechaHoraUtc: Date | string, estado: string): bool
   const cierreMs = new Date(fechaHoraUtc).getTime() - MINUTOS_ANTES_CIERRE * 60 * 1000;
   return Date.now() >= cierreMs;
 }
+
+/** Tiempo restante hasta el cierre de predicciones (10 min antes del inicio). */
+export function tiempoHastaCierre(fechaHoraUtc: Date | string): string {
+  const cierre = new Date(fechaHoraUtc).getTime() - MINUTOS_ANTES_CIERRE * 60 * 1000;
+  if (Date.now() >= cierre) return "Cerrado";
+  return tiempoRestante(new Date(cierre));
+}

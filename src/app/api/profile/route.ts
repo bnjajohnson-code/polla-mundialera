@@ -16,15 +16,14 @@ const nombreSchema = z.object({
   nombre: z.string().min(2, "Mínimo 2 caracteres").max(40, "Máximo 40 caracteres").trim(),
 });
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("id") ?? session.user.id;
-
+  // Solo el perfil propio: este endpoint expone email, preferencias y
+  // predicciones de partidos aún abiertos.
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: session.user.id },
     select: {
       id: true, nombre: true, email: true, rol: true, createdAt: true,
       notifPrefs: true,

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PredictionStepper } from "./PredictionStepper";
 import {
   formatHoraPartido,
-  tiempoRestante,
+  tiempoHastaCierre,
   estaBlockeado,
   FASE_LABELS,
   cn,
@@ -57,7 +57,7 @@ export function MatchCard({ partido }: Props) {
           <span>{formatHoraPartido(partido.fechaHoraUtc)}</span>
           {!bloqueado && (
             <span className="text-amber-600 dark:text-amber-400 font-medium">
-              · cierra en {tiempoRestante(partido.fechaHoraUtc)}
+              · cierra en {tiempoHastaCierre(partido.fechaHoraUtc)}
             </span>
           )}
         </div>

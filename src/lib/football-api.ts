@@ -105,16 +105,6 @@ export async function fetchMatch(externalId: number): Promise<ApiMatch> {
 
 // ─── Mapeo de stage de la API → FasePartido ──────────────────────────────────
 
-const STAGE_MAP: Record<string, FasePartido> = {
-  GROUP_STAGE: "grupos",
-  ROUND_OF_16: "dieciseisavos",
-  LAST_16: "dieciseisavos",
-  QUARTER_FINALS: "octavos",
-  SEMI_FINALS: "cuartos",
-  THIRD_PLACE: "semifinal",
-  FINAL: "final",
-};
-
 // Mundial 2026 tiene 48 equipos y nueva estructura:
 // 12 grupos de 4, luego 32 equipos → R32, R16, QF, SF, 3rd place, Final
 const STAGE_MAP_2026: Record<string, FasePartido> = {
@@ -131,7 +121,7 @@ const STAGE_MAP_2026: Record<string, FasePartido> = {
 };
 
 export function mapStage(stage: string): FasePartido {
-  return STAGE_MAP_2026[stage] ?? STAGE_MAP[stage] ?? "grupos";
+  return STAGE_MAP_2026[stage] ?? "grupos";
 }
 
 // ─── Mapeo de status de la API → EstadoPartido ───────────────────────────────

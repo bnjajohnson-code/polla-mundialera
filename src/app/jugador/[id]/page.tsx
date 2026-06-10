@@ -3,7 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
-import { formatFechaHora, FASE_LABELS } from "@/lib/utils";
+import { formatFechaHora, estaBlockeado, FASE_LABELS } from "@/lib/utils";
 import { formatTeamDisplay } from "@/lib/teams";
 import { calcularPuntos } from "@/lib/scoring";
 import type { FasePartido } from "@prisma/client";
@@ -26,6 +26,13 @@ export default async function JugadorPage({ params }: { params: { id: string } }
   });
 
   if (!user) notFound();
+
+  // Solo el dueño del perfil ve sus predicciones de partidos aún abiertos;
+  // para el resto se muestran únicamente las de partidos ya bloqueados.
+  const esPropio = session.user.id === user.id;
+  const prediccionesVisibles = esPropio
+    ? user.predicciones
+    : user.predicciones.filter((p) => estaBlockeado(p.partido.fechaHoraUtc, p.partido.estado));
 
   const predsFinalizadas = user.predicciones.filter((p) => p.partido.estado === "finalizado");
   const puntosTotales = predsFinalizadas.reduce((s, p) => s + (p.puntos ?? 0), 0);
@@ -58,13 +65,17 @@ export default async function JugadorPage({ params }: { params: { id: string } }
       {/* Historial */}
       <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3">Historial de pronósticos</h3>
 
-      {user.predicciones.length === 0 ? (
+      {prediccionesVisibles.length === 0 ? (
         <div className="card p-8 text-center text-gray-400 dark:text-gray-600">
-          <p className="text-sm">Sin pronósticos aún.</p>
+          <p className="text-sm">
+            {esPropio
+              ? "Sin pronósticos aún."
+              : "Los pronósticos se muestran cuando cada partido se cierra."}
+          </p>
         </div>
       ) : (
         <div className="card overflow-hidden">
-          {user.predicciones.map((pred) => {
+          {prediccionesVisibles.map((pred) => {
             const partido = pred.partido;
             const finalizado = partido.estado === "finalizado";
             const tieneResultado = partido.golesLocal !== null && partido.golesVisitante !== null;

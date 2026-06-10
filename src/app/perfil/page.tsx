@@ -47,7 +47,7 @@ export default function PerfilPage() {
 
   useEffect(() => {
     if (!session) return;
-    fetch(`/api/profile?id=${session.user.id}`)
+    fetch("/api/profile")
       .then((r) => r.json())
       .then((d) => {
         if (d.user?.notifPrefs) setPrefs(d.user.notifPrefs);
