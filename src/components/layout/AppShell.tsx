@@ -34,7 +34,7 @@ export function AppShell({ title, children, showBack, backHref }: Props) {
         </div>
 
         {/* Page content */}
-        <div className="max-w-4xl mx-auto px-4 lg:px-8 py-4 pb-tab-bar lg:pb-8">
+        <div className="max-w-4xl mx-auto px-4 lg:px-8 pt-4 pb-tab-bar lg:pb-8">
           {children}
         </div>
       </main>
