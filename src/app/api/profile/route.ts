@@ -12,6 +12,10 @@ const prefsSchema = z.object({
   avisoFaltante2h: z.boolean().optional(),
 });
 
+const nombreSchema = z.object({
+  nombre: z.string().min(2, "Mínimo 2 caracteres").max(40, "Máximo 40 caracteres").trim(),
+});
+
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -41,8 +45,21 @@ export async function PATCH(req: Request) {
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   try {
-    const data = prefsSchema.parse(await req.json());
+    const body = await req.json();
 
+    // Cambio de nombre
+    if ("nombre" in body) {
+      const { nombre } = nombreSchema.parse(body);
+      const user = await prisma.user.update({
+        where: { id: session.user.id },
+        data: { nombre },
+        select: { nombre: true },
+      });
+      return NextResponse.json({ nombre: user.nombre });
+    }
+
+    // Preferencias de notificación
+    const data = prefsSchema.parse(body);
     const prefs = await prisma.notifPreferencia.upsert({
       where: { userId: session.user.id },
       create: { userId: session.user.id, ...data },

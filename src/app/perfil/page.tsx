@@ -4,7 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { Bell, BellOff, LogOut, User, Star, Trophy, Target, Loader2 } from "lucide-react";
+import { Bell, BellOff, LogOut, User, Star, Trophy, Target, Loader2, Pencil, Check, X } from "lucide-react";
 import { PushNotifications } from "@/components/notifications/PushNotifications";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
@@ -31,10 +31,19 @@ export default function PerfilPage() {
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ puntos: 0, plenos: 0, jugados: 0 });
+  const [editingNombre, setEditingNombre] = useState(false);
+  const [nombreDraft, setNombreDraft] = useState("");
+  const [nombreActual, setNombreActual] = useState("");
+  const [nombreError, setNombreError] = useState("");
+  const [savingNombre, setSavingNombre] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
+
+  useEffect(() => {
+    if (session?.user?.name) setNombreActual(session.user.name);
+  }, [session]);
 
   useEffect(() => {
     if (!session) return;
@@ -67,6 +76,37 @@ export default function PerfilPage() {
     setSaving(false);
   };
 
+  const startEditNombre = () => {
+    setNombreDraft(nombreActual);
+    setNombreError("");
+    setEditingNombre(true);
+  };
+
+  const cancelEditNombre = () => {
+    setEditingNombre(false);
+    setNombreError("");
+  };
+
+  const saveNombre = async () => {
+    const trimmed = nombreDraft.trim();
+    if (trimmed.length < 2) { setNombreError("Mínimo 2 caracteres"); return; }
+    if (trimmed.length > 40) { setNombreError("Máximo 40 caracteres"); return; }
+    setSavingNombre(true);
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: trimmed }),
+    });
+    setSavingNombre(false);
+    if (res.ok) {
+      setNombreActual(trimmed);
+      setEditingNombre(false);
+    } else {
+      const d = await res.json();
+      setNombreError(d.error ?? "Error al guardar");
+    }
+  };
+
   const marcarLeidas = async () => {
     await fetch("/api/notifications?all=true", { method: "PATCH" });
     setNotifs((n) => n.map((x) => ({ ...x, leido: true })));
@@ -85,16 +125,57 @@ export default function PerfilPage() {
       {/* Avatar / Info */}
       <div className="card p-5 mb-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
             <User className="w-7 h-7 text-primary-600 dark:text-primary-400" />
           </div>
-          <div>
-            <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{session.user.name}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{session.user.email}</p>
-            {session.user.role === "admin" && (
-              <span className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full">
-                Admin
-              </span>
+          <div className="flex-1 min-w-0">
+            {editingNombre ? (
+              <div className="space-y-1.5">
+                <input
+                  className="input w-full text-sm font-bold"
+                  value={nombreDraft}
+                  onChange={(e) => { setNombreDraft(e.target.value); setNombreError(""); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveNombre(); if (e.key === "Escape") cancelEditNombre(); }}
+                  maxLength={40}
+                  autoFocus
+                />
+                {nombreError && <p className="text-xs text-red-500">{nombreError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveNombre}
+                    disabled={savingNombre}
+                    className="flex items-center gap-1 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                  >
+                    {savingNombre ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    Guardar
+                  </button>
+                  <button
+                    onClick={cancelEditNombre}
+                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 py-1.5 rounded-lg"
+                  >
+                    <X className="w-3 h-3" /> Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg truncate">{nombreActual || session.user.name}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{session.user.email}</p>
+                  {session.user.role === "admin" && (
+                    <span className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={startEditNombre}
+                  className="ml-auto flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="Cambiar nombre"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </div>
         </div>
