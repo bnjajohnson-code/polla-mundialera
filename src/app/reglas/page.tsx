@@ -142,23 +142,7 @@ export default async function ReglasPage() {
               color: "text-green-600 dark:text-green-400",
             },
             {
-              pred: "1 – 0",
-              pts: 7,
-              star: false,
-              checks: ["Resultado ✓", "Goles visit. ✓", "Diferencia ✗"],
-              label: "Resultado + visitante",
-              color: "text-green-600 dark:text-green-400",
-            },
-            {
               pred: "4 – 2",
-              pts: 6,
-              star: false,
-              checks: ["Resultado ✓", "Diferencia ✓"],
-              label: "Resultado + diferencia",
-              color: "text-blue-600 dark:text-blue-400",
-            },
-            {
-              pred: "3 – 1",
               pts: 6,
               star: false,
               checks: ["Resultado ✓", "Diferencia ✓"],
