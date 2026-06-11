@@ -232,7 +232,6 @@ export default function PerfilPage() {
 
           <div className="space-y-3">
             {([
-              { key: "emailEnabled", label: "Email", desc: "Recibir avisos por email" },
               { key: "avisoInicio", label: "Inicio de partido (1h antes)", desc: "Para todos los partidos" },
               { key: "avisoFaltante24h", label: "Pronóstico pendiente (24h)", desc: "Si no has completado tu predicción" },
               { key: "avisoFaltante2h", label: "Pronóstico pendiente (2h)", desc: "Recordatorio urgente" },
