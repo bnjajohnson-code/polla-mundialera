@@ -19,6 +19,7 @@ export default async function PartidoPage({ params }: { params: { id: string } }
     where: { id: params.id },
     include: {
       predicciones: {
+        where: { user: { rol: "jugador" } },
         include: { user: { select: { id: true, nombre: true } } },
         orderBy: [{ puntos: "desc" }, { createdAt: "asc" }],
       },
