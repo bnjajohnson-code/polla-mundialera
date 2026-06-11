@@ -11,6 +11,7 @@ import {
   formatTeamCode,
 } from "@/lib/football-api";
 import { recalcularYGuardar } from "@/lib/scoring";
+import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -119,10 +120,63 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Fuente secundaria: worldcup26.ir (live scores) ──────────────────────
+    // football-data.org gratuito entrega resultados con horas de retraso.
+    // Para partidos que football-data aún no finaliza, usamos worldcup26.ir.
+    // Cuando football-data finalmente reporte, su dato prevalece (arriba).
+    let liveActualizados = 0;
+    const wc26Games = await fetchWc26Games();
+
+    if (wc26Games) {
+      for (const game of wc26Games) {
+        const estadoWc = wc26Estado(game);
+        if (estadoWc === "notstarted") continue;
+
+        const score = wc26Score(game);
+        if (!score) continue;
+
+        const tlaLocal = wc26NameToTla(game.home_team_name_en);
+        const tlaVisitante = wc26NameToTla(game.away_team_name_en);
+        if (!tlaLocal || !tlaVisitante) continue;
+
+        const partido = await prisma.partido.findFirst({
+          where: { codigoLocal: tlaLocal, codigoVisitante: tlaVisitante },
+        });
+
+        // football-data manda: si ya está finalizado (o es manual), no tocar
+        if (!partido || partido.resultadoManual || partido.estado === "finalizado") continue;
+
+        const sinCambios =
+          partido.estado === estadoWc &&
+          partido.golesLocal === score.home &&
+          partido.golesVisitante === score.away;
+        if (sinCambios) continue;
+
+        await prisma.partido.update({
+          where: { id: partido.id },
+          data: {
+            estado: estadoWc,
+            golesLocal: score.home,
+            golesVisitante: score.away,
+            golesLocalReg: score.home,
+            golesVisitanteReg: score.away,
+          },
+        });
+
+        if (estadoWc === "finalizado") {
+          await recalcularYGuardar(partido.id, score.home, score.away, partido.fase);
+        }
+
+        liveActualizados++;
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       creados,
       actualizados,
+      liveActualizados,
+      liveDisponible: wc26Games !== null,
       total: apiMatches.length,
     });
   } catch (err) {
