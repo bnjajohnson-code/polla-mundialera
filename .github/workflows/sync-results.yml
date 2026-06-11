@@ -12,9 +12,9 @@ jobs:
     steps:
       - name: Call sync endpoint
         run: |
-          response=$(curl -s -w "\n%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://polla-mundialera.vercel.app/api/cron/sync)
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://polla-mundialera-comtec.vercel.app/api/sync)
           body=$(echo "$response" | head -n -1)
           status=$(echo "$response" | tail -n 1)
           echo "Status: $status"
