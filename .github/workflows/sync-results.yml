@@ -2,8 +2,8 @@ name: Sync match results
 
 on:
   schedule:
-    # Cada 10 minutos (GitHub puede demorar algunos minutos extra en horas punta)
-    - cron: "*/10 * * * *"
+    # Cada 5 minutos (mínimo de GitHub Actions; puede demorar algunos minutos extra en horas punta)
+    - cron: "*/5 * * * *"
   workflow_dispatch: # Permite ejecutarlo manualmente desde la pestaña Actions
 
 jobs:
