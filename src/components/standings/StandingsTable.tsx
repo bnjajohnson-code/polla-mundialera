@@ -49,10 +49,10 @@ export function StandingsTable({ tabla }: Props) {
             {/* Nombre */}
             <div className="min-w-0">
               <p className={cn("font-semibold text-sm truncate text-gray-900 dark:text-gray-100", isMe && "text-primary-700 dark:text-primary-400")}>
-                {row.nombre}{" "}
-                <span title={row.pagado ? "Pagó su cuota del pozo" : "Pago pendiente"} className="text-xs">
-                  {row.pagado ? "💰" : "⏳"}
-                </span>
+                {row.nombre}
+                {!row.pagado && (
+                  <span title="Pago pendiente" className="text-xs"> ⏳</span>
+                )}
                 {isMe && <span className="text-xs font-normal"> (tú)</span>}
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500">{row.partidosConPronostico} pronósticos</p>

@@ -85,7 +85,6 @@ export default async function TablaPage() {
           <span>Pts = Puntos totales</span>
           <span>⭐ = Achuntes</span>
           <span>✓ = Resultados</span>
-          <span>💰 = Pagó</span>
           <span>⏳ = Pago pendiente</span>
         </div>
       </div>
