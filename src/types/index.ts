@@ -44,6 +44,7 @@ export interface PosicionTabla {
   plenos: number;
   aciertosResultado: number;
   partidosConPronostico: number;
+  pagado: boolean;
   createdAt: Date;
   posicion: number;
   cambio: number; // positivo = subió, negativo = bajó, 0 = igual

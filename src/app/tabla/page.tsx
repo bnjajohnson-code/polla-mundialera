@@ -45,6 +45,7 @@ export default async function TablaPage() {
       plenos,
       aciertosResultado,
       partidosConPronostico: preds.length,
+      pagado: user.pagado,
       createdAt: user.createdAt,
       posicion: 0,
       cambio: 0,
@@ -80,10 +81,12 @@ export default async function TablaPage() {
       )}
 
       <div className="mb-2">
-        <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 px-4">
+        <div className="flex items-center gap-4 flex-wrap text-xs text-gray-400 dark:text-gray-500 px-4">
           <span>Pts = Puntos totales</span>
           <span>⭐ = Achuntes</span>
           <span>✓ = Resultados</span>
+          <span>💰 = Pagó</span>
+          <span>⏳ = Pago pendiente</span>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
 import { MatchCard } from "@/components/fixture/MatchCard";
 import { MissingPredictionsBanner } from "@/components/notifications/MissingPredictionsBanner";
+import { PushPromptBanner } from "@/components/notifications/PushPromptBanner";
 import { FASE_LABELS, FASE_ORDER, formatFechaPartido } from "@/lib/utils";
 import type { FasePartido } from "@prisma/client";
 
@@ -41,6 +42,7 @@ export default async function FixturePage() {
 
   return (
     <AppShell title="Polla Mundialera 2026">
+      <PushPromptBanner />
       <MissingPredictionsBanner />
 
       {fasesOrdenadas.map((fase) => {

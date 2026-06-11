@@ -36,6 +36,7 @@ export async function GET() {
       plenos,
       aciertosResultado,
       partidosConPronostico: preds.length,
+      pagado: user.pagado,
       createdAt: user.createdAt,
       posicion: 0,
       cambio: 0,

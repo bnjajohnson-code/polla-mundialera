@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Bell, BellOff, LogOut, User, Star, Trophy, Target, Loader2, Pencil, Check, X } from "lucide-react";
 import { PushNotifications } from "@/components/notifications/PushNotifications";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { TreasuryPanel } from "@/components/profile/TreasuryPanel";
 
 interface Prefs {
   emailEnabled: boolean;
@@ -36,6 +37,7 @@ export default function PerfilPage() {
   const [nombreActual, setNombreActual] = useState("");
   const [nombreError, setNombreError] = useState("");
   const [savingNombre, setSavingNombre] = useState(false);
+  const [esTesorero, setEsTesorero] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -51,6 +53,7 @@ export default function PerfilPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.user?.notifPrefs) setPrefs(d.user.notifPrefs);
+        setEsTesorero(d.user?.esTesorero ?? false);
         const preds = d.user?.predicciones ?? [];
         const fin = preds.filter((p: { partido: { estado: string } }) => p.partido.estado === "finalizado");
         const pts = fin.reduce((s: number, p: { puntos: number | null }) => s + (p.puntos ?? 0), 0);
@@ -162,11 +165,18 @@ export default function PerfilPage() {
                 <div className="min-w-0">
                   <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg truncate">{nombreActual || session.user.name}</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{session.user.email}</p>
-                  {session.user.role === "admin" && (
-                    <span className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full">
-                      Admin
-                    </span>
-                  )}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {session.user.role === "admin" && (
+                      <span className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full">
+                        Admin
+                      </span>
+                    )}
+                    {esTesorero && (
+                      <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded-full">
+                        💰 Tesorero
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={startEditNombre}
@@ -250,6 +260,9 @@ export default function PerfilPage() {
           </div>
         </div>
       )}
+
+      {/* Panel de tesorería (solo admin y tesorero) */}
+      {(session.user.role === "admin" || esTesorero) && <TreasuryPanel />}
 
       {/* Historial de notificaciones */}
       <div className="card overflow-hidden mb-4" id="notificaciones">

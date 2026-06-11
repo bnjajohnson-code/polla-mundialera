@@ -35,6 +35,10 @@ model User {
   email     String   @unique
   password  String
   rol       Role     @default(jugador)
+  // Tesorero: puede gestionar quién pagó su cuota del pozo
+  esTesorero Boolean @default(false)
+  // Indica si el jugador pagó su cuota del pozo
+  pagado     Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
