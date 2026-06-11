@@ -64,6 +64,14 @@ export async function POST(req: Request) {
         });
         creados++;
       } else {
+        // La API gratuita a veces "parpadea": devuelve datos viejos (TIMED/null)
+        // para un partido que ya reportó en juego o con goles. Nunca retroceder.
+        const regresionEstado =
+          (existente.estado === "en_juego" && estado === "programado") ||
+          (existente.estado === "finalizado" && estado !== "finalizado");
+        const regresionGoles =
+          existente.golesLocal !== null && golesLocal === null;
+
         const updateData: Record<string, unknown> = {
           fase,
           grupo: match.group,
@@ -73,10 +81,13 @@ export async function POST(req: Request) {
           codigoLocal: formatTeamCode(match.homeTeam),
           codigoVisitante: formatTeamCode(match.awayTeam),
           fechaHoraUtc: new Date(match.utcDate),
-          estado,
         };
 
-        if (!existente.resultadoManual) {
+        if (!regresionEstado) {
+          updateData.estado = estado;
+        }
+
+        if (!existente.resultadoManual && !regresionGoles) {
           updateData.golesLocal = golesLocal;
           updateData.golesVisitante = golesVisitante;
           updateData.golesLocalReg = golesLocalReg;
