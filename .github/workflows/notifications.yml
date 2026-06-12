@@ -1,0 +1,24 @@
+name: Send notifications
+
+on:
+  schedule:
+    # Cada 15 minutos, igual que la ventana de búsqueda (±15 min) del motor
+    - cron: "*/15 * * * *"
+  workflow_dispatch: # Permite ejecutarlo manualmente desde la pestaña Actions
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call notifications endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://polla-mundialera-5420.vercel.app/api/cron/notifications)
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+          echo "Status: $status"
+          echo "Response: $body"
+          if [ "$status" -ne 200 ]; then
+            exit 1
+          fi

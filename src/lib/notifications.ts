@@ -153,12 +153,15 @@ async function notificarFaltantes(
 
     if (faltantes.length === 0) continue;
 
-    // Verificar que no se haya enviado ya (tomamos el primer partido como clave)
+    // Solo avisar partidos no notificados antes: el cron corre cada 15 min
+    // con ventana de ±15 min, sin esto se duplicarían los envíos
+    const nuevos: typeof faltantes = [];
     for (const partido of faltantes) {
       const yaEnviado = await prisma.notificacion.findFirst({
         where: { userId: user.id, tipo, partidoId: partido.id },
       });
       if (yaEnviado) continue;
+      nuevos.push(partido);
 
       const titulo = `⚠️ Pronóstico pendiente: ${partido.equipoLocal} vs ${partido.equipoVisitante}`;
       const mensaje = `Tienes ${horasAntes}h para ingresar tu pronóstico.`;
@@ -168,13 +171,15 @@ async function notificarFaltantes(
       });
     }
 
+    if (nuevos.length === 0) continue;
+
     // Email (agrupa todos los faltantes en un correo)
     if (!prefs || prefs.emailEnabled) {
       try {
         await sendEmailFaltantePronostico(
           user.email,
           user.nombre,
-          faltantes.map((p) => ({
+          nuevos.map((p) => ({
             equipoLocal: p.equipoLocal,
             equipoVisitante: p.equipoVisitante,
             fechaHoraUtc: p.fechaHoraUtc,
@@ -192,7 +197,7 @@ async function notificarFaltantes(
       for (const sub of user.pushSubs) {
         try {
           await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
-            title: `⚠️ Te faltan ${faltantes.length} pronóstico(s)`,
+            title: `⚠️ Te faltan ${nuevos.length} pronóstico(s)`,
             body: `Tienes ${horasAntes}h para ingresar tus predicciones.`,
             url: "/fixture",
           });
