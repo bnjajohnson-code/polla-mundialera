@@ -23,9 +23,11 @@ export async function procesarNotificaciones(): Promise<{ enviadas: number; erro
   const ventana1hMin = new Date(en1h.getTime() - WINDOW_MINS * 60 * 1000);
   const ventana1hMax = new Date(en1h.getTime() + WINDOW_MINS * 60 * 1000);
 
+  // Incluir en_juego por si el sync actualizó el estado antes de que
+  // corriera la ventana de 1h (worldcup26.ir puede hacerlo al instante)
   const partidosEn1h = await prisma.partido.findMany({
     where: {
-      estado: "programado",
+      estado: { in: ["programado", "en_juego"] },
       fechaHoraUtc: { gte: ventana1hMin, lte: ventana1hMax },
     },
   });
@@ -121,7 +123,7 @@ async function notificarFaltantes(
 
   const partidos = await prisma.partido.findMany({
     where: {
-      estado: "programado",
+      estado: { in: ["programado", "en_juego"] },
       fechaHoraUtc: { gte: ventanaMin, lte: ventanaMax },
     },
   });
