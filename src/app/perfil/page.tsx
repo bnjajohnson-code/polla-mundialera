@@ -18,19 +18,11 @@ interface Prefs {
   avisoFaltante2h: boolean;
 }
 
-interface Notif {
-  id: string;
-  titulo: string;
-  mensaje: string;
-  leido: boolean;
-  createdAt: string;
-}
 
 export default function PerfilPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [prefs, setPrefs] = useState<Prefs | null>(null);
-  const [notifs, setNotifs] = useState<Notif[]>([]);
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ puntos: 0, plenos: 0, jugados: 0 });
   const [editingNombre, setEditingNombre] = useState(false);
@@ -62,9 +54,6 @@ export default function PerfilPage() {
         const ple = fin.filter((p: { puntos: number | null; partido: { fase: string } }) => p.puntos === maxPts(p.partido.fase)).length;
         setStats({ puntos: pts, plenos: ple, jugados: fin.length });
       });
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((d) => setNotifs(d.notificaciones ?? []));
   }, [session]);
 
   const updatePref = async (key: keyof Prefs, value: boolean) => {
@@ -109,11 +98,6 @@ export default function PerfilPage() {
       const d = await res.json();
       setNombreError(d.error ?? "Error al guardar");
     }
-  };
-
-  const marcarLeidas = async () => {
-    await fetch("/api/notifications?all=true", { method: "PATCH" });
-    setNotifs((n) => n.map((x) => ({ ...x, leido: true })));
   };
 
   if (status === "loading" || !session) {
@@ -266,31 +250,6 @@ export default function PerfilPage() {
 
       {/* Panel de tesorería (solo admin y tesorero) */}
       {(session.user.role === "admin" || esTesorero) && <TreasuryPanel />}
-
-      {/* Historial de notificaciones */}
-      <div className="card overflow-hidden mb-4" id="notificaciones">
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm">Notificaciones recientes</h3>
-          {notifs.some((n) => !n.leido) && (
-            <button onClick={marcarLeidas} className="text-xs text-primary-600 dark:text-primary-400 font-medium">
-              Marcar todas como leídas
-            </button>
-          )}
-        </div>
-        {notifs.length === 0 ? (
-          <div className="py-8 text-center text-gray-400 dark:text-gray-600 text-sm">Sin notificaciones.</div>
-        ) : (
-          notifs.map((n) => (
-            <div
-              key={n.id}
-              className={`px-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0 ${!n.leido ? "bg-blue-50 dark:bg-blue-950/50" : ""}`}
-            >
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{n.titulo}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{n.mensaje}</p>
-            </div>
-          ))
-        )}
-      </div>
 
       {/* Cerrar sesión */}
       <button

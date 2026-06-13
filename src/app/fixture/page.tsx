@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { MatchCard } from "@/components/fixture/MatchCard";
 import { MissingPredictionsBanner } from "@/components/notifications/MissingPredictionsBanner";
 import { PushPromptBanner } from "@/components/notifications/PushPromptBanner";
+import { JumpToTodayButton } from "@/components/fixture/JumpToTodayButton";
 import { FASE_LABELS, FASE_ORDER, formatFechaPartido } from "@/lib/utils";
 import type { FasePartido } from "@prisma/client";
 
@@ -27,6 +28,23 @@ export default async function FixturePage() {
       },
     },
   });
+
+  // Determinar el primer partido de hoy (zona horaria de Santiago) para el
+  // botón de salto. Si no hay partidos hoy, el próximo programado; si no, el último.
+  const fmtDia = (d: Date) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Santiago",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  const hoyStr = fmtDia(new Date());
+  const ahora = Date.now();
+  const targetPartido =
+    partidos.find((p) => fmtDia(p.fechaHoraUtc) === hoyStr) ??
+    partidos.find((p) => p.fechaHoraUtc.getTime() >= ahora) ??
+    partidos[partidos.length - 1];
+  const targetId = targetPartido?.id;
 
   // Agrupar por fase y luego por fecha
   const byFase = new Map<FasePartido, typeof partidos>();
@@ -70,13 +88,14 @@ export default async function FixturePage() {
                 </p>
                 <div className="space-y-3">
                   {ps.map((p: (typeof partidos)[number]) => (
-                    <MatchCard
-                      key={p.id}
-                      partido={{
-                        ...p,
-                        miPrediccion: p.predicciones[0] ?? null,
-                      }}
-                    />
+                    <div key={p.id} id={p.id === targetId ? "fixture-hoy" : undefined} className="scroll-mt-20">
+                      <MatchCard
+                        partido={{
+                          ...p,
+                          miPrediccion: p.predicciones[0] ?? null,
+                        }}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -92,6 +111,8 @@ export default async function FixturePage() {
           <p className="text-sm mt-1">El administrador debe sincronizar el fixture.</p>
         </div>
       )}
+
+      {targetId && <JumpToTodayButton />}
     </AppShell>
   );
 }

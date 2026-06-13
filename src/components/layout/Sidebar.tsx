@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, User, Settings, Bell, BellDot, BookOpen } from "lucide-react";
+import { Home, Trophy, User, Settings, BookOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const navItems = [
   { href: "/fixture", label: "Fixture", icon: Home },
@@ -21,16 +22,8 @@ export function Sidebar() {
   const { data: session } = useSession();
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [noLeidas, setNoLeidas] = useState(0);
 
   useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((d) => setNoLeidas(d.noLeidas ?? 0))
-      .catch(() => {});
-  }, []);
 
   const allItems = [
     ...navItems,
@@ -78,25 +71,7 @@ export function Sidebar() {
 
       {/* Bottom: notifications + theme + user */}
       <div className="px-3 pb-4 border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
-        <Link
-          href="/perfil#notificaciones"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
-        >
-          {noLeidas > 0 ? (
-            <>
-              <BellDot className="w-5 h-5 text-primary-600" />
-              <span className="flex-1">Notificaciones</span>
-              <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
-                {noLeidas > 9 ? "9+" : noLeidas}
-              </span>
-            </>
-          ) : (
-            <>
-              <Bell className="w-5 h-5" />
-              <span>Notificaciones</span>
-            </>
-          )}
-        </Link>
+        <NotificationBell variant="sidebar" />
 
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400">
           <ThemeToggle className="p-0 rounded-none hover:bg-transparent dark:hover:bg-transparent" />
