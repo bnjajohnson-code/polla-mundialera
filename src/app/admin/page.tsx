@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell, KeyRound, X } from "lucide-react";
 import { AdminMatchEditor } from "@/components/admin/AdminMatchEditor";
 
 interface User {
@@ -47,6 +47,10 @@ export default function AdminPage() {
   const [pushMensaje, setPushMensaje] = useState("");
   const [sendingPush, setSendingPush] = useState(false);
   const [pushResult, setPushResult] = useState<string | null>(null);
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetResult, setResetResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -147,6 +151,26 @@ export default function AdminPage() {
       setPushResult(`✗ ${data.error ?? "Error al enviar"}`);
     }
     setTimeout(() => setPushResult(null), 5000);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUserId || resetPassword.length < 6) return;
+    setResetting(true);
+    setResetResult(null);
+    const res = await fetch("/api/admin/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: resetUserId, password: resetPassword }),
+    });
+    const data = await res.json();
+    setResetting(false);
+    if (data.ok) {
+      setResetResult("✓ Contraseña actualizada");
+      setResetPassword("");
+      setTimeout(() => { setResetUserId(null); setResetResult(null); }, 2500);
+    } else {
+      setResetResult("✗ " + (data.error ?? "Error"));
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -325,12 +349,57 @@ export default function AdminPage() {
               </span>
             )}
             {user.rol !== "admin" && (
-              <button
-                onClick={() => handleDeleteUser(user.id, user.nombre)}
-                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => { setResetUserId(user.id); setResetPassword(""); setResetResult(null); }}
+                  className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-lg transition-colors"
+                  title="Cambiar contraseña"
+                >
+                  <KeyRound className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteUser(user.id, user.nombre)}
+                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Inline reset form */}
+            {resetUserId === user.id && (
+              <div className="col-span-full w-full mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl flex flex-col gap-2">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  Nueva contraseña para <strong>{user.nombre}</strong>
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    className="input flex-1 text-sm"
+                    type="text"
+                    placeholder="Mínimo 6 caracteres"
+                    value={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleResetPassword(); if (e.key === "Escape") setResetUserId(null); }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleResetPassword}
+                    disabled={resetting || resetPassword.length < 6}
+                    className="btn-primary text-xs px-3 flex items-center gap-1"
+                  >
+                    {resetting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    Guardar
+                  </button>
+                  <button onClick={() => setResetUserId(null)} className="p-2 text-gray-400 hover:text-gray-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {resetResult && (
+                  <p className={`text-xs ${resetResult.startsWith("✓") ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
+                    {resetResult}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         ))}

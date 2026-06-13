@@ -8,6 +8,7 @@ import { Bell, BellOff, LogOut, User, Star, Trophy, Target, Loader2, Pencil, Che
 import { PushNotifications } from "@/components/notifications/PushNotifications";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { TreasuryPanel } from "@/components/profile/TreasuryPanel";
+import { ChangePasswordPanel } from "@/components/profile/ChangePasswordPanel";
 
 interface Prefs {
   emailEnabled: boolean;
@@ -259,6 +260,9 @@ export default function PerfilPage() {
           </div>
         </div>
       )}
+
+      {/* Cambio de contraseña */}
+      <ChangePasswordPanel />
 
       {/* Panel de tesorería (solo admin y tesorero) */}
       {(session.user.role === "admin" || esTesorero) && <TreasuryPanel />}
