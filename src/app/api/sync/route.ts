@@ -146,6 +146,13 @@ export async function POST(req: Request) {
         // football-data manda: si ya está finalizado (o es manual), no tocar
         if (!partido || partido.resultadoManual || partido.estado === "finalizado") continue;
 
+        // No aplicar live score antes de que cierre el plazo de pronósticos
+        // (10 min antes del pitazo). Si lo hacemos antes, se exponen los
+        // pronósticos de otros jugadores y se bloquean predicciones aún abiertas.
+        const MINUTOS_ANTES_CIERRE = 10;
+        const cierreMs = new Date(partido.fechaHoraUtc).getTime() - MINUTOS_ANTES_CIERRE * 60 * 1000;
+        if (Date.now() < cierreMs) continue;
+
         const sinCambios =
           partido.estado === estadoWc &&
           partido.golesLocal === score.home &&
