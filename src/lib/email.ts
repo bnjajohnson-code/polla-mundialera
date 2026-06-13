@@ -1,8 +1,36 @@
-import { Resend } from "resend";
 import { formatHoraPartido, formatFechaPartido } from "@/lib/utils";
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = process.env.RESEND_FROM_EMAIL ?? "Polla Mundialera <noreply@pollafutbol.com>";
+// Envío vía Brevo (plan gratuito: 300 emails/día).
+// Requiere BREVO_API_KEY y BREVO_FROM_EMAIL (remitente verificado en Brevo).
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const FROM_EMAIL = process.env.BREVO_FROM_EMAIL ?? "";
+const FROM_NAME = "Polla Mundialera";
+
+async function sendBrevoEmail(to: string, subject: string, html: string): Promise<void> {
+  if (!BREVO_API_KEY || !FROM_EMAIL) {
+    console.log("[email] BREVO_API_KEY/BREVO_FROM_EMAIL no configurados, email omitido");
+    return;
+  }
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": BREVO_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Brevo respondió ${res.status}: ${body}`);
+  }
+}
 
 interface MatchInfo {
   equipoLocal: string;
@@ -59,8 +87,7 @@ export async function sendEmailFaltantePronostico(
 </body>
 </html>`;
 
-  if (!resend) { console.log("[email] RESEND_API_KEY no configurado, email omitido"); return; }
-  await resend.emails.send({ from: FROM, to, subject: asunto, html });
+  await sendBrevoEmail(to, asunto, html);
 }
 
 export async function sendEmailInicioPartido(
@@ -101,6 +128,5 @@ export async function sendEmailInicioPartido(
 </body>
 </html>`;
 
-  if (!resend) { console.log("[email] RESEND_API_KEY no configurado, email omitido"); return; }
-  await resend.emails.send({ from: FROM, to, subject: asunto, html });
+  await sendBrevoEmail(to, asunto, html);
 }
