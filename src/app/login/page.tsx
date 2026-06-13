@@ -111,6 +111,10 @@ export default function LoginPage() {
               Registrarse
             </Link>
           </p>
+          <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-3">
+            ¿Se te olvidó la contraseña? Contacta a{" "}
+            <span className="font-semibold text-gray-500 dark:text-gray-500">Benjamin J.</span>
+          </p>
         </div>
       </div>
     </div>
