@@ -13,6 +13,52 @@ import { formatHoraPartido } from "@/lib/utils";
 
 const WINDOW_MINS = 15; // Buscar partidos en ventana de ±15 min del trigger
 
+/**
+ * Notifica a todos los suscritos que un partido finalizó y la tabla se actualizó.
+ * Idempotente: si ya se notificó este partido, no hace nada (el sync corre cada 5 min).
+ */
+export async function notificarResultadoFinal(
+  partidoId: string,
+  golesLocal: number,
+  golesVisitante: number
+): Promise<void> {
+  const partido = await prisma.partido.findUnique({ where: { id: partidoId } });
+  if (!partido) return;
+
+  // Dedup global por partido
+  const yaNotificado = await prisma.notificacion.findFirst({
+    where: { tipo: "resultado_final", partidoId },
+  });
+  if (yaNotificado) return;
+
+  const titulo = `🏁 Final: ${partido.equipoLocal} ${golesLocal} – ${golesVisitante} ${partido.equipoVisitante}`;
+  const mensaje = "Se actualizó la tabla de posiciones. ¡Revisa tus puntos!";
+
+  const usuarios = await prisma.user.findMany({
+    include: { notifPrefs: true, pushSubs: true },
+  });
+
+  for (const user of usuarios) {
+    await prisma.notificacion.create({
+      data: { userId: user.id, tipo: "resultado_final", partidoId, canal: "in_app", enviado: true, titulo, mensaje },
+    });
+
+    if (user.notifPrefs?.pushEnabled && user.pushSubs.length > 0) {
+      for (const sub of user.pushSubs) {
+        try {
+          await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
+            title: titulo,
+            body: mensaje,
+            url: "/tabla",
+          });
+        } catch {
+          // silencioso (suscripción expirada, etc.)
+        }
+      }
+    }
+  }
+}
+
 export async function procesarNotificaciones(): Promise<{ enviadas: number; errores: number }> {
   const ahora = new Date();
   let enviadas = 0;

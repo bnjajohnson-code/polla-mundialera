@@ -11,6 +11,7 @@ import {
   formatTeamCode,
 } from "@/lib/football-api";
 import { recalcularYGuardar } from "@/lib/scoring";
+import { notificarResultadoFinal } from "@/lib/notifications";
 import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
 
 export async function POST(req: Request) {
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
           (!yaFinalizado || marcadorCambio)
         ) {
           await recalcularYGuardar(existente.id, golesLocal!, golesVisitante!, fase);
+          await notificarResultadoFinal(existente.id, golesLocal!, golesVisitante!);
         }
 
         actualizados++;
@@ -172,6 +174,7 @@ export async function POST(req: Request) {
 
         if (estadoWc === "finalizado") {
           await recalcularYGuardar(partido.id, score.home, score.away, partido.fase);
+          await notificarResultadoFinal(partido.id, score.home, score.away);
         }
 
         liveActualizados++;
