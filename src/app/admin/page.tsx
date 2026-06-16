@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell, KeyRound, X } from "lucide-react";
 import { AdminMatchEditor } from "@/components/admin/AdminMatchEditor";
+import { AdminPredictionEditor } from "@/components/admin/AdminPredictionEditor";
 
 interface User {
   id: string;
@@ -220,6 +221,9 @@ export default function AdminPage() {
 
       {/* Editar resultado manual */}
       <AdminMatchEditor onSaved={loadData} />
+
+      {/* Editar pronósticos de jugadores */}
+      <AdminPredictionEditor />
 
       {/* Push de prueba */}
       <div className="card p-4 mb-4">
