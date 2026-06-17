@@ -77,7 +77,7 @@ export async function notificarCambioLider(): Promise<void> {
   if (esInicializacion) return;
 
   const titulo = `👑 Nuevo líder: ${lider.nombre}`;
-  const mensaje = `${lider.nombre} toma la punta de la tabla con ${lider.puntos} puntos.`;
+  const mensaje = `${lider.nombre} toma la punta de la polla con ${lider.puntos} puntos.`;
 
   const usuarios = await prisma.user.findMany({
     include: { notifPrefs: true, pushSubs: true },
