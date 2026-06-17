@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { recalcularYGuardar } from "@/lib/scoring";
-import { notificarResultadoFinal } from "@/lib/notifications";
+import { notificarResultadoFinal, notificarCambioLider } from "@/lib/notifications";
 
 const schema = z.object({
   golesLocal: z.number().int().min(0).max(30),
@@ -41,6 +41,7 @@ export async function PATCH(
     // Recalcular puntos de todas las predicciones de este partido
     await recalcularYGuardar(params.id, data.golesLocal, data.golesVisitante, partido.fase);
     await notificarResultadoFinal(params.id, data.golesLocal, data.golesVisitante);
+    await notificarCambioLider();
 
     return NextResponse.json({ ok: true });
   } catch (err) {

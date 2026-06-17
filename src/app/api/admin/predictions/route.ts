@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { recalcularYGuardar } from "@/lib/scoring";
+import { notificarCambioLider } from "@/lib/notifications";
 
 // GET /api/admin/predictions?partidoId=X
 // Lista todos los jugadores con su pronóstico (o null) para ese partido.
@@ -72,6 +73,7 @@ export async function PUT(req: Request) {
       partido.golesVisitante !== null
     ) {
       await recalcularYGuardar(partidoId, partido.golesLocal, partido.golesVisitante, partido.fase);
+      await notificarCambioLider();
     }
 
     return NextResponse.json({ ok: true });

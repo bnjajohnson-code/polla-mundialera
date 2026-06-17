@@ -11,7 +11,7 @@ import {
   formatTeamCode,
 } from "@/lib/football-api";
 import { recalcularYGuardar } from "@/lib/scoring";
-import { notificarResultadoFinal } from "@/lib/notifications";
+import { notificarResultadoFinal, notificarCambioLider } from "@/lib/notifications";
 import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
 
 export async function POST(req: Request) {
@@ -180,6 +180,9 @@ export async function POST(req: Request) {
         liveActualizados++;
       }
     }
+
+    // Tras recalcular puntos, comprobar si cambió el líder de la tabla
+    await notificarCambioLider();
 
     return NextResponse.json({
       ok: true,

@@ -77,8 +77,8 @@ export function NotificationBell({ variant = "header", className }: Props) {
 
   const irA = (n: Notif) => {
     setOpen(false);
-    // Resultado final → tabla; faltantes/inicio → fixture
-    const url = n.titulo.startsWith("🏁") ? "/tabla" : "/fixture";
+    // Resultado final o cambio de líder → tabla; faltantes/inicio → fixture
+    const url = n.titulo.startsWith("🏁") || n.titulo.startsWith("👑") ? "/tabla" : "/fixture";
     router.push(url);
   };
 

@@ -14,6 +14,97 @@ import { formatHoraPartido } from "@/lib/utils";
 const WINDOW_MINS = 15; // Buscar partidos en ventana de ±15 min del trigger
 
 /**
+ * Calcula el líder actual de la tabla (mismo criterio que la página de Tabla).
+ * Solo cuenta jugadores (rol "jugador"). Devuelve null si nadie tiene puntos.
+ */
+async function obtenerLider(): Promise<{ userId: string; nombre: string; puntos: number } | null> {
+  const usuarios = await prisma.user.findMany({
+    where: { rol: "jugador" },
+    include: {
+      predicciones: {
+        where: { partido: { estado: "finalizado" } },
+        select: { puntos: true, partido: { select: { fase: true } } },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const maxPorFase = (fase: string) => (fase === "grupos" ? 10 : 20);
+
+  const tabla = usuarios.map((u) => {
+    const preds = u.predicciones;
+    const puntos = preds.reduce((s, p) => s + (p.puntos ?? 0), 0);
+    const plenos = preds.filter((p) => p.puntos !== null && p.puntos === maxPorFase(p.partido.fase)).length;
+    const aciertos = preds.filter((p) => p.puntos !== null && p.puntos >= (p.partido.fase === "grupos" ? 5 : 10)).length;
+    return { userId: u.id, nombre: u.nombre, puntos, plenos, aciertos, createdAt: u.createdAt };
+  });
+
+  tabla.sort((a, b) => {
+    if (b.puntos !== a.puntos) return b.puntos - a.puntos;
+    if (b.plenos !== a.plenos) return b.plenos - a.plenos;
+    if (b.aciertos !== a.aciertos) return b.aciertos - a.aciertos;
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  });
+
+  const top = tabla[0];
+  if (!top || top.puntos <= 0) return null;
+  return { userId: top.userId, nombre: top.nombre, puntos: top.puntos };
+}
+
+/**
+ * Detecta si el líder de la tabla cambió respecto al guardado en Configuración
+ * y, de ser así, notifica a todos. Se llama después de recalcular puntos.
+ */
+export async function notificarCambioLider(): Promise<void> {
+  const lider = await obtenerLider();
+  if (!lider) return;
+
+  const config = await prisma.configuracion.findFirst();
+  if (!config) return;
+
+  // Sin cambio respecto al líder ya registrado
+  if (config.liderActualId === lider.userId) return;
+
+  // Primera vez (líder aún no registrado): inicializar en silencio para no
+  // emitir un aviso falso al desplegar la feature con un líder ya establecido.
+  const esInicializacion = config.liderActualId === null;
+
+  await prisma.configuracion.update({
+    where: { id: config.id },
+    data: { liderActualId: lider.userId },
+  });
+
+  if (esInicializacion) return;
+
+  const titulo = `👑 Nuevo líder: ${lider.nombre}`;
+  const mensaje = `${lider.nombre} toma la punta de la tabla con ${lider.puntos} puntos.`;
+
+  const usuarios = await prisma.user.findMany({
+    include: { notifPrefs: true, pushSubs: true },
+  });
+
+  for (const user of usuarios) {
+    await prisma.notificacion.create({
+      data: { userId: user.id, tipo: "cambio_lider", canal: "in_app", enviado: true, titulo, mensaje },
+    });
+
+    if (user.notifPrefs?.pushEnabled && user.pushSubs.length > 0) {
+      for (const sub of user.pushSubs) {
+        try {
+          await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
+            title: titulo,
+            body: mensaje,
+            url: "/tabla",
+          });
+        } catch {
+          // silencioso
+        }
+      }
+    }
+  }
+}
+
+/**
  * Notifica a todos los suscritos que un partido finalizó y la tabla se actualizó.
  * Idempotente: si ya se notificó este partido, no hace nada (el sync corre cada 5 min).
  */
