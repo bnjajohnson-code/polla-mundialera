@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, User, Settings, BookOpen, MessageCircle } from "lucide-react";
+import { Home, Trophy, User, Settings, BookOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/fixture", label: "Fixture", icon: Home },
   { href: "/tabla", label: "Tabla", icon: Trophy },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/reglas", label: "Reglas", icon: BookOpen },
-  { href: "/perfil", label: "Perfil", icon: User },
+  { href: "/perfil", label: "Mi Perfil", icon: User },
 ];
 
 export function TabBar() {

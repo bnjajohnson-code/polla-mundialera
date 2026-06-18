@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, User, Settings, BookOpen, MessageCircle } from "lucide-react";
+import { Home, Trophy, User, Settings, BookOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -13,7 +13,6 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 const navItems = [
   { href: "/fixture", label: "Fixture", icon: Home },
   { href: "/tabla", label: "Tabla", icon: Trophy },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/reglas", label: "Reglas", icon: BookOpen },
   { href: "/perfil", label: "Mi Perfil", icon: User },
 ];

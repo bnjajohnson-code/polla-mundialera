@@ -76,6 +76,11 @@ export async function notificarCambioLider(): Promise<void> {
 
   if (esInicializacion) return;
 
+  // A pedido: no avisar cuando Catalina pasa a liderar (sí se registra el
+  // cambio arriba, para que cuando alguien la destrone sí se notifique).
+  const CATALINA_USER_ID = "cmq9uis4a000g3v80cilqwwse";
+  if (lider.userId === CATALINA_USER_ID) return;
+
   const titulo = `👑 Nuevo líder: ${lider.nombre}`;
   const mensaje = `${lider.nombre} toma la punta de la polla con ${lider.puntos} puntos.`;
 

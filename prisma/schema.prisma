@@ -46,7 +46,6 @@ model User {
   notificaciones  Notificacion[]
   pushSubs        PushSubscription[]
   notifPrefs      NotifPreferencia?
-  mensajes        Mensaje[]
 
   @@map("users")
 }
@@ -95,18 +94,6 @@ model Prediccion {
   @@index([userId])
   @@index([partidoId])
   @@map("predicciones")
-}
-
-model Mensaje {
-  id        String   @id @default(cuid())
-  userId    String
-  texto     String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([createdAt])
-  @@map("mensajes")
 }
 
 model Configuracion {
