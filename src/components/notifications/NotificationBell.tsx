@@ -48,10 +48,33 @@ export function NotificationBell({ variant = "header", className }: Props) {
   };
 
   useEffect(() => {
-    cargar();
-    // Refresca el contador cada 60s
-    const t = setInterval(cargar, 60000);
-    return () => clearInterval(t);
+    // Solo consultamos cuando la pestaña está visible. Una pestaña en segundo
+    // plano (o un teléfono con la app abierta y guardada) no debe golpear la
+    // base cada minuto: eso mantiene a Neon despierta 24/7 y gasta compute.
+    let t: ReturnType<typeof setInterval> | null = null;
+
+    const iniciar = () => {
+      if (t) return;
+      cargar();
+      t = setInterval(cargar, 180000); // cada 3 min
+    };
+    const detener = () => {
+      if (t) {
+        clearInterval(t);
+        t = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") iniciar();
+      else detener();
+    };
+
+    if (document.visibilityState === "visible") iniciar();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      detener();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   // Cerrar al hacer clic fuera

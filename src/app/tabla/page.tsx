@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
@@ -9,59 +10,70 @@ import type { PosicionTabla } from "@/types";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// La tabla es idéntica para todos los jugadores y solo cambia cuando finaliza un
+// partido. La cacheamos 60s para que múltiples refrescos durante un partido no
+// despierten/consulten la base de Neon en cada visita (ahorro de compute).
+const getTabla = unstable_cache(
+  async (): Promise<PosicionTabla[]> => {
+    const usuarios = await prisma.user.findMany({
+      where: { rol: "jugador" },
+      include: {
+        predicciones: {
+          where: { partido: { estado: "finalizado" } },
+          select: {
+            puntos: true,
+            partido: { select: { fase: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const tabla: PosicionTabla[] = usuarios.map((user) => {
+      const preds = user.predicciones;
+      const puntosTotales = preds.reduce((s, p) => s + (p.puntos ?? 0), 0);
+      const maxPorFase = (fase: string) => (fase === "grupos" ? 10 : 20);
+      const plenos = preds.filter(
+        (p) => p.puntos !== null && p.puntos === maxPorFase(p.partido.fase)
+      ).length;
+      const aciertosResultado = preds.filter(
+        (p) => p.puntos !== null && p.puntos >= (p.partido.fase === "grupos" ? 5 : 10)
+      ).length;
+
+      return {
+        userId: user.id,
+        nombre: user.nombre,
+        puntosTotales,
+        plenos,
+        aciertosResultado,
+        partidosConPronostico: preds.length,
+        pagado: user.pagado,
+        createdAt: user.createdAt,
+        posicion: 0,
+        cambio: 0,
+      };
+    });
+
+    tabla.sort((a, b) => {
+      if (b.puntosTotales !== a.puntosTotales) return b.puntosTotales - a.puntosTotales;
+      if (b.plenos !== a.plenos) return b.plenos - a.plenos;
+      if (b.aciertosResultado !== a.aciertosResultado)
+        return b.aciertosResultado - a.aciertosResultado;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    tabla.forEach((t, i) => { t.posicion = i + 1; });
+    return tabla;
+  },
+  ["tabla-posiciones"],
+  { revalidate: 60, tags: ["tabla"] }
+);
+
 export default async function TablaPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const usuarios = await prisma.user.findMany({
-    where: { rol: "jugador" },
-    include: {
-      predicciones: {
-        where: { partido: { estado: "finalizado" } },
-        select: {
-          puntos: true,
-          partido: { select: { fase: true } },
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const tabla: PosicionTabla[] = usuarios.map((user) => {
-    const preds = user.predicciones;
-    const puntosTotales = preds.reduce((s, p) => s + (p.puntos ?? 0), 0);
-    const maxPorFase = (fase: string) => (fase === "grupos" ? 10 : 20);
-    const plenos = preds.filter(
-      (p) => p.puntos !== null && p.puntos === maxPorFase(p.partido.fase)
-    ).length;
-    const aciertosResultado = preds.filter(
-      (p) => p.puntos !== null && p.puntos >= (p.partido.fase === "grupos" ? 5 : 10)
-    ).length;
-
-    return {
-      userId: user.id,
-      nombre: user.nombre,
-      puntosTotales,
-      plenos,
-      aciertosResultado,
-      partidosConPronostico: preds.length,
-      pagado: user.pagado,
-      createdAt: user.createdAt,
-      posicion: 0,
-      cambio: 0,
-    };
-  });
-
-  tabla.sort((a, b) => {
-    if (b.puntosTotales !== a.puntosTotales) return b.puntosTotales - a.puntosTotales;
-    if (b.plenos !== a.plenos) return b.plenos - a.plenos;
-    if (b.aciertosResultado !== a.aciertosResultado)
-      return b.aciertosResultado - a.aciertosResultado;
-    return a.createdAt.getTime() - b.createdAt.getTime();
-  });
-
-  tabla.forEach((t, i) => { t.posicion = i + 1; });
-
+  const tabla = await getTabla();
   const leader = tabla[0];
 
   return (
