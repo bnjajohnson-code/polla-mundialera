@@ -13,6 +13,7 @@ import {
 import { recalcularYGuardar } from "@/lib/scoring";
 import { notificarResultadoFinal, notificarCambioLider } from "@/lib/notifications";
 import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
+import { tocaSyncAhora } from "@/lib/sync-window";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -24,10 +25,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
+  // Fuera del horario de partidos (o en el "hueco" de cada 10 min) no tocamos
+  // la base, para que Neon pueda dormir. El admin siempre puede forzar el sync.
+  if (isCron && !isAdmin && !tocaSyncAhora()) {
+    return NextResponse.json({ ok: true, skipped: true });
+  }
+
   try {
     const apiMatches = await fetchMatches();
     let creados = 0;
     let actualizados = 0;
+    let algoFinalizo = false;
 
     for (const match of apiMatches) {
       const fase = mapStage(match.stage);
@@ -74,6 +82,9 @@ export async function POST(req: Request) {
         const regresionGoles =
           existente.golesLocal !== null && golesLocal === null;
 
+        const nuevoEstado = regresionEstado ? existente.estado : estado;
+        const aplicarGoles = !existente.resultadoManual && !regresionGoles;
+
         const updateData: Record<string, unknown> = {
           fase,
           grupo: match.group,
@@ -83,23 +94,41 @@ export async function POST(req: Request) {
           codigoLocal: formatTeamCode(match.homeTeam),
           codigoVisitante: formatTeamCode(match.awayTeam),
           fechaHoraUtc: new Date(match.utcDate),
+          estado: nuevoEstado,
         };
 
-        if (!regresionEstado) {
-          updateData.estado = estado;
-        }
-
-        if (!existente.resultadoManual && !regresionGoles) {
+        if (aplicarGoles) {
           updateData.golesLocal = golesLocal;
           updateData.golesVisitante = golesVisitante;
           updateData.golesLocalReg = golesLocalReg;
           updateData.golesVisitanteReg = golesVisitanteReg;
         }
 
-        await prisma.partido.update({
-          where: { id: existente.id },
-          data: updateData,
-        });
+        // Solo escribir si algo cambió de verdad (evita reescribir los 104
+        // partidos en cada corrida y mantener la base ocupada sin necesidad).
+        const cambio =
+          existente.fase !== updateData.fase ||
+          existente.grupo !== updateData.grupo ||
+          existente.jornada !== updateData.jornada ||
+          existente.equipoLocal !== updateData.equipoLocal ||
+          existente.equipoVisitante !== updateData.equipoVisitante ||
+          existente.codigoLocal !== updateData.codigoLocal ||
+          existente.codigoVisitante !== updateData.codigoVisitante ||
+          existente.fechaHoraUtc.getTime() !== (updateData.fechaHoraUtc as Date).getTime() ||
+          existente.estado !== nuevoEstado ||
+          (aplicarGoles &&
+            (existente.golesLocal !== golesLocal ||
+              existente.golesVisitante !== golesVisitante ||
+              existente.golesLocalReg !== golesLocalReg ||
+              existente.golesVisitanteReg !== golesVisitanteReg));
+
+        if (cambio) {
+          await prisma.partido.update({
+            where: { id: existente.id },
+            data: updateData,
+          });
+          actualizados++;
+        }
 
         const yaFinalizado = existente.estado === "finalizado";
         const ahoraFinalizado = estado === "finalizado";
@@ -116,9 +145,8 @@ export async function POST(req: Request) {
         ) {
           await recalcularYGuardar(existente.id, golesLocal!, golesVisitante!, fase);
           await notificarResultadoFinal(existente.id, golesLocal!, golesVisitante!);
+          algoFinalizo = true;
         }
-
-        actualizados++;
       }
     }
 
@@ -175,14 +203,19 @@ export async function POST(req: Request) {
         if (estadoWc === "finalizado") {
           await recalcularYGuardar(partido.id, score.home, score.away, partido.fase);
           await notificarResultadoFinal(partido.id, score.home, score.away);
+          algoFinalizo = true;
         }
 
         liveActualizados++;
       }
     }
 
-    // Tras recalcular puntos, comprobar si cambió el líder de la tabla
-    await notificarCambioLider();
+    // Solo comprobar el cambio de líder si algún partido finalizó en esta
+    // corrida (la tabla solo puede cambiar entonces). Evita consultar a todos
+    // los usuarios y sus predicciones en cada sync.
+    if (algoFinalizo) {
+      await notificarCambioLider();
+    }
 
     return NextResponse.json({
       ok: true,
