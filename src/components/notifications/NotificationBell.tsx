@@ -48,33 +48,12 @@ export function NotificationBell({ variant = "header", className }: Props) {
   };
 
   useEffect(() => {
-    // Solo consultamos cuando la pestaña está visible. Una pestaña en segundo
-    // plano (o un teléfono con la app abierta y guardada) no debe golpear la
-    // base cada minuto: eso mantiene a Neon despierta 24/7 y gasta compute.
-    let t: ReturnType<typeof setInterval> | null = null;
-
-    const iniciar = () => {
-      if (t) return;
-      cargar();
-      t = setInterval(cargar, 180000); // cada 3 min
-    };
-    const detener = () => {
-      if (t) {
-        clearInterval(t);
-        t = null;
-      }
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") iniciar();
-      else detener();
-    };
-
-    if (document.visibilityState === "visible") iniciar();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      detener();
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
+    // Sin polling: una sola consulta al cargar la página (para mostrar el
+    // contador de no leídas) y luego nada hasta que el usuario abra la campana.
+    // Antes consultábamos en intervalo, lo que mantenía a Neon/Vercel ocupados
+    // 24/7 con pestañas abiertas que nadie mira. Ahora una pestaña abandonada
+    // hace 1 consulta al cargar y después cero.
+    cargar();
   }, []);
 
   // Cerrar al hacer clic fuera
