@@ -42,7 +42,7 @@ export async function sendEmailFaltantePronostico(
   to: string,
   nombre: string,
   partidos: MatchInfo[],
-  horasAntes: 24 | 2
+  horasAntes: number
 ): Promise<void> {
   const listaPartidos = partidos
     .map(

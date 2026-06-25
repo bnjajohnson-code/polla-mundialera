@@ -1,15 +1,13 @@
 /**
  * Motor de notificaciones.
- * Corre desde Vercel Cron cada hora.
- * Lógica:
- * 1. Busca partidos que inician en ~1h → notifica a todos (inicio_partido)
- * 2. Busca partidos en 24h y 2h → notifica a usuarios sin pronóstico (faltante_*)
+ * Corre dentro del sync (cron unificado), solo dentro de la ventana de partidos.
+ * Lógica: un único recordatorio de pronóstico faltante ~1h antes de cada partido,
+ * dirigido solo a los usuarios que aún no han pronosticado ese partido.
  */
 
 import { prisma } from "@/lib/prisma";
-import { sendEmailFaltantePronostico, sendEmailInicioPartido } from "@/lib/email";
+import { sendEmailFaltantePronostico } from "@/lib/email";
 import { sendPushNotification } from "@/lib/push";
-import { formatHoraPartido } from "@/lib/utils";
 
 const WINDOW_MINS = 15; // Buscar partidos en ventana de ±15 min del trigger
 
@@ -157,106 +155,16 @@ export async function notificarResultadoFinal(
 
 export async function procesarNotificaciones(): Promise<{ enviadas: number; errores: number }> {
   const ahora = new Date();
-  let enviadas = 0;
-  let errores = 0;
-
-  // ── 1. Notificaciones de inicio de partido (1h antes) ─────────────────────
-  const en1h = new Date(ahora.getTime() + 60 * 60 * 1000);
-  const ventana1hMin = new Date(en1h.getTime() - WINDOW_MINS * 60 * 1000);
-  const ventana1hMax = new Date(en1h.getTime() + WINDOW_MINS * 60 * 1000);
-
-  // Incluir en_juego por si el sync actualizó el estado antes de que
-  // corriera la ventana de 1h (worldcup26.ir puede hacerlo al instante)
-  const partidosEn1h = await prisma.partido.findMany({
-    where: {
-      estado: { in: ["programado", "en_juego"] },
-      fechaHoraUtc: { gte: ventana1hMin, lte: ventana1hMax },
-    },
-  });
-
-  for (const partido of partidosEn1h) {
-    const usuarios = await prisma.user.findMany({
-      include: { notifPrefs: true, pushSubs: true },
-    });
-
-    for (const user of usuarios) {
-      const prefs = user.notifPrefs;
-      if (prefs && !prefs.avisoInicio) continue;
-
-      // Verificar que no se haya enviado ya
-      const yaEnviado = await prisma.notificacion.findFirst({
-        where: {
-          userId: user.id,
-          tipo: "inicio_partido",
-          partidoId: partido.id,
-        },
-      });
-      if (yaEnviado) continue;
-
-      const titulo = `⚽ En 1 hora: ${partido.equipoLocal} vs ${partido.equipoVisitante}`;
-      const mensaje = `El partido comienza a las ${formatHoraPartido(partido.fechaHoraUtc)} (Santiago).`;
-
-      // Guardar notificación in-app
-      await prisma.notificacion.create({
-        data: {
-          userId: user.id,
-          tipo: "inicio_partido",
-          partidoId: partido.id,
-          canal: "in_app",
-          enviado: true,
-          titulo,
-          mensaje,
-        },
-      });
-
-      // Email
-      if (!prefs || prefs.emailEnabled) {
-        try {
-          await sendEmailInicioPartido(user.email, user.nombre, {
-            equipoLocal: partido.equipoLocal,
-            equipoVisitante: partido.equipoVisitante,
-            fechaHoraUtc: partido.fechaHoraUtc,
-          });
-          await prisma.notificacion.create({
-            data: { userId: user.id, tipo: "inicio_partido", partidoId: partido.id, canal: "email", enviado: true, titulo, mensaje },
-          });
-          enviadas++;
-        } catch {
-          errores++;
-        }
-      }
-
-      // Push
-      if (prefs?.pushEnabled && user.pushSubs.length > 0) {
-        for (const sub of user.pushSubs) {
-          try {
-            await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
-              title: titulo,
-              body: mensaje,
-              url: "/fixture",
-            });
-            enviadas++;
-          } catch {
-            errores++;
-          }
-        }
-      }
-    }
-  }
-
-  // ── 2. Recordatorio pronóstico faltante (24h antes) ───────────────────────
-  enviadas += await notificarFaltantes(ahora, 24, errores);
-
-  // ── 3. Recordatorio pronóstico faltante (2h antes) ────────────────────────
-  enviadas += await notificarFaltantes(ahora, 2, errores);
-
-  return { enviadas, errores };
+  // Único recordatorio: pronóstico faltante ~1h antes del partido, solo a
+  // quienes aún no han pronosticado. (Se eliminaron los avisos de 24h y el de
+  // "inicio de partido" para reducir carga de consultas/notificaciones.)
+  const enviadas = await notificarFaltantes(ahora, 1);
+  return { enviadas, errores: 0 };
 }
 
 async function notificarFaltantes(
   ahora: Date,
-  horasAntes: 24 | 2,
-  _errores: number
+  horasAntes: number
 ): Promise<number> {
   let enviadas = 0;
   const target = new Date(ahora.getTime() + horasAntes * 60 * 60 * 1000);
@@ -272,7 +180,7 @@ async function notificarFaltantes(
 
   if (partidos.length === 0) return 0;
 
-  const tipo = horasAntes === 24 ? "faltante_24h" : "faltante_2h";
+  const tipo = `faltante_${horasAntes}h`;
 
   const usuarios = await prisma.user.findMany({
     include: {
@@ -289,8 +197,8 @@ async function notificarFaltantes(
 
   for (const user of usuarios) {
     const prefs = user.notifPrefs;
-    const prefKey = horasAntes === 24 ? "avisoFaltante24h" : "avisoFaltante2h";
-    if (prefs && !prefs[prefKey]) continue;
+    // El recordatorio cercano se controla con la preferencia avisoFaltante2h.
+    if (prefs && !prefs.avisoFaltante2h) continue;
 
     const partidosPredecidos = new Set(user.predicciones.map((p) => p.partidoId));
     const faltantes = partidos.filter((p) => !partidosPredecidos.has(p.id));
