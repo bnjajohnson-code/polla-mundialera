@@ -11,7 +11,7 @@ import {
   formatTeamCode,
 } from "@/lib/football-api";
 import { recalcularYGuardar } from "@/lib/scoring";
-import { notificarResultadoFinal, notificarCambioLider } from "@/lib/notifications";
+import { notificarResultadoFinal, notificarCambioLider, procesarNotificaciones } from "@/lib/notifications";
 import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
 import { tocaSyncAhora } from "@/lib/sync-window";
 
@@ -217,6 +217,16 @@ export async function POST(req: Request) {
       await notificarCambioLider();
     }
 
+    // Cron unificado: las notificaciones pre-partido se procesan aquí mismo en
+    // vez de un cron aparte, para no duplicar invocaciones en Vercel. Solo corre
+    // dentro de la ventana de partidos (el guard de arriba ya lo garantiza).
+    let notificaciones: Awaited<ReturnType<typeof procesarNotificaciones>> | null = null;
+    try {
+      notificaciones = await procesarNotificaciones();
+    } catch (e) {
+      console.error("Error procesando notificaciones en sync:", e);
+    }
+
     return NextResponse.json({
       ok: true,
       creados,
@@ -224,6 +234,7 @@ export async function POST(req: Request) {
       liveActualizados,
       liveDisponible: wc26Games !== null,
       total: apiMatches.length,
+      notificaciones,
     });
   } catch (err) {
     console.error("Error en sincronización:", err);
