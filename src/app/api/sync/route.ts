@@ -12,7 +12,7 @@ import {
 } from "@/lib/football-api";
 import { recalcularYGuardar } from "@/lib/scoring";
 import { notificarResultadoFinal, notificarCambioLider, procesarNotificaciones } from "@/lib/notifications";
-import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
+import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score, wc26MapFase, wc26ParseDate } from "@/lib/worldcup26";
 import { tocaSyncAhora } from "@/lib/sync-window";
 
 export async function POST(req: Request) {
@@ -32,7 +32,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const apiMatches = await fetchMatches();
+    let apiMatches: Awaited<ReturnType<typeof fetchMatches>> = [];
+    try {
+      apiMatches = await fetchMatches();
+    } catch (fdErr) {
+      console.warn("[sync] football-data.org no disponible, continuando con worldcup26.ir:", fdErr instanceof Error ? fdErr.message : fdErr);
+    }
+
     let creados = 0;
     let actualizados = 0;
     let algoFinalizo = false;
@@ -159,6 +165,42 @@ export async function POST(req: Request) {
 
     if (wc26Games) {
       for (const game of wc26Games) {
+        // ── Crear partidos de eliminatoria aún no existentes ─────────────────
+        if (game.type !== "group") {
+          const tlaLocal = wc26NameToTla(game.home_team_name_en);
+          const tlaVisitante = wc26NameToTla(game.away_team_name_en);
+
+          if (tlaLocal && tlaVisitante && game.home_team_name_en && game.away_team_name_en) {
+            const wc26ExtId = 2026000 + parseInt(game.id, 10);
+            const [existePorId, existePorTla] = await Promise.all([
+              prisma.partido.findUnique({ where: { externalId: wc26ExtId } }),
+              prisma.partido.findFirst({ where: { codigoLocal: tlaLocal, codigoVisitante: tlaVisitante } }),
+            ]);
+
+            if (!existePorId && !existePorTla) {
+              const fechaHoraUtc = wc26ParseDate(game.local_date);
+              if (fechaHoraUtc) {
+                await prisma.partido.create({
+                  data: {
+                    externalId: wc26ExtId,
+                    fase: wc26MapFase(game.type),
+                    grupo: game.group,
+                    jornada: game.matchday ? parseInt(game.matchday, 10) : null,
+                    equipoLocal: game.home_team_name_en,
+                    equipoVisitante: game.away_team_name_en,
+                    codigoLocal: tlaLocal,
+                    codigoVisitante: tlaVisitante,
+                    fechaHoraUtc,
+                    estado: "programado",
+                  },
+                });
+                creados++;
+              }
+            }
+          }
+        }
+
+        // ── Live score update para partidos ya existentes ────────────────────
         const estadoWc = wc26Estado(game);
         if (estadoWc === "notstarted") continue;
 

@@ -17,7 +17,9 @@ export interface Wc26Game {
   finished: string; // "TRUE" | "FALSE"
   time_elapsed: string; // "notstarted" | minutos | "finished"
   group: string | null;
-  type: string; // "group" | "r32" | ...
+  matchday: string | null;
+  type: string; // "group" | "r32" | "r16" | "qf" | "sf" | "tp" | "f"
+  local_date: string | null; // "MM/DD/YYYY HH:MM" en PDT (UTC-7)
 }
 
 // Nombre en inglés de worldcup26.ir → código TLA usado en nuestra BD (football-data)
@@ -107,6 +109,35 @@ export function wc26Estado(game: Wc26Game): "notstarted" | "en_juego" | "finaliz
   if (game.finished === "TRUE" || game.time_elapsed === "finished") return "finalizado";
   if (game.time_elapsed && game.time_elapsed !== "notstarted") return "en_juego";
   return "notstarted";
+}
+
+import type { FasePartido } from "@prisma/client";
+
+const WC26_TYPE_TO_FASE: Record<string, FasePartido> = {
+  r32: "dieciseisavos",
+  r16: "octavos",
+  qf:  "cuartos",
+  sf:  "semifinal",
+  tp:  "tercer_puesto",
+  f:   "final",
+};
+
+export function wc26MapFase(type: string): FasePartido {
+  return WC26_TYPE_TO_FASE[type] ?? "grupos";
+}
+
+/**
+ * Convierte local_date de worldcup26.ir a UTC.
+ * El campo está en PDT (UTC-7): se comprobó que Qatar vs Suiza
+ * aparece como "06/13/2026 12:00" y la BD tiene 2026-06-13T19:00:00Z (+7h).
+ */
+export function wc26ParseDate(localDate: string | null): Date | null {
+  if (!localDate) return null;
+  const m = localDate.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
+  if (!m) return null;
+  const [, month, day, year, hour, min] = m.map(Number);
+  const pdtMs = Date.UTC(year, month - 1, day, hour, min);
+  return new Date(pdtMs + 7 * 60 * 60 * 1000); // PDT → UTC
 }
 
 export function wc26Score(game: Wc26Game): { home: number; away: number } | null {
