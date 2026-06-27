@@ -172,30 +172,48 @@ export async function POST(req: Request) {
 
           if (tlaLocal && tlaVisitante && game.home_team_name_en && game.away_team_name_en) {
             const wc26ExtId = 2026000 + parseInt(game.id, 10);
-            const [existePorId, existePorTla] = await Promise.all([
-              prisma.partido.findUnique({ where: { externalId: wc26ExtId } }),
-              prisma.partido.findFirst({ where: { codigoLocal: tlaLocal, codigoVisitante: tlaVisitante } }),
-            ]);
+            const fase = wc26MapFase(game.type);
+            const fechaHoraUtc = wc26ParseDate(game.local_date);
 
-            if (!existePorId && !existePorTla) {
-              const fechaHoraUtc = wc26ParseDate(game.local_date);
-              if (fechaHoraUtc) {
-                await prisma.partido.create({
+            // Buscar partido existente: por externalId wc26, por ambos TLA,
+            // o por TLA local con visitante aún nulo (football-data.org parcial)
+            const existente =
+              await prisma.partido.findUnique({ where: { externalId: wc26ExtId } }) ??
+              await prisma.partido.findFirst({ where: { codigoLocal: tlaLocal, codigoVisitante: tlaVisitante } }) ??
+              await prisma.partido.findFirst({ where: { fase, codigoLocal: tlaLocal, codigoVisitante: null } });
+
+            if (existente) {
+              // Completar datos parciales si faltan equipo visitante o fecha
+              const necesitaUpdate =
+                !existente.codigoVisitante ||
+                (fechaHoraUtc && existente.fechaHoraUtc.getTime() !== fechaHoraUtc.getTime());
+              if (necesitaUpdate) {
+                await prisma.partido.update({
+                  where: { id: existente.id },
                   data: {
-                    externalId: wc26ExtId,
-                    fase: wc26MapFase(game.type),
-                    grupo: game.group,
-                    jornada: game.matchday ? parseInt(game.matchday, 10) : null,
-                    equipoLocal: game.home_team_name_en,
                     equipoVisitante: game.away_team_name_en,
-                    codigoLocal: tlaLocal,
                     codigoVisitante: tlaVisitante,
-                    fechaHoraUtc,
-                    estado: "programado",
+                    ...(fechaHoraUtc ? { fechaHoraUtc } : {}),
                   },
                 });
-                creados++;
+                actualizados++;
               }
+            } else if (fechaHoraUtc) {
+              await prisma.partido.create({
+                data: {
+                  externalId: wc26ExtId,
+                  fase,
+                  grupo: game.group,
+                  jornada: game.matchday ? parseInt(game.matchday, 10) : null,
+                  equipoLocal: game.home_team_name_en,
+                  equipoVisitante: game.away_team_name_en,
+                  codigoLocal: tlaLocal,
+                  codigoVisitante: tlaVisitante,
+                  fechaHoraUtc,
+                  estado: "programado",
+                },
+              });
+              creados++;
             }
           }
         }
