@@ -88,6 +88,11 @@ const TEAMS: Record<string, TeamInfo> = {
   BHR: { nameEs: "Baréin", flag: "🇧🇭" },
   KUW: { nameEs: "Kuwait", flag: "🇰🇼" },
 
+  CPV: { nameEs: "Cabo Verde", flag: "🇨🇻" },
+  CUW: { nameEs: "Curazao", flag: "🇨🇼" },
+  HAI: { nameEs: "Haití", flag: "🇭🇹" },
+  KSA: { nameEs: "Arabia Saudita", flag: "🇸🇦" },
+
   // CAF
   MAR: { nameEs: "Marruecos", flag: "🇲🇦" },
   SEN: { nameEs: "Senegal", flag: "🇸🇳" },

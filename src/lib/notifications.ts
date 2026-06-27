@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmailFaltantePronostico } from "@/lib/email";
 import { sendPushNotification } from "@/lib/push";
+import { formatTeamEs } from "@/lib/teams";
 
 const WINDOW_MINS = 15; // Buscar partidos en ventana de ±15 min del trigger
 
@@ -125,7 +126,9 @@ export async function notificarResultadoFinal(
   });
   if (yaNotificado) return;
 
-  const titulo = `🏁 Final: ${partido.equipoLocal} ${golesLocal} – ${golesVisitante} ${partido.equipoVisitante}`;
+  const local = formatTeamEs(partido.equipoLocal, partido.codigoLocal);
+  const visitante = formatTeamEs(partido.equipoVisitante, partido.codigoVisitante);
+  const titulo = `🏁 Final: ${local} ${golesLocal} – ${golesVisitante} ${visitante}`;
   const mensaje = "Se actualizó la tabla de posiciones. ¡Revisa tus puntos!";
 
   const usuarios = await prisma.user.findMany({
@@ -215,7 +218,7 @@ async function notificarFaltantes(
       if (yaEnviado) continue;
       nuevos.push(partido);
 
-      const titulo = `⚠️ Pronóstico pendiente: ${partido.equipoLocal} vs ${partido.equipoVisitante}`;
+      const titulo = `⚠️ Pronóstico pendiente: ${formatTeamEs(partido.equipoLocal, partido.codigoLocal)} vs ${formatTeamEs(partido.equipoVisitante, partido.codigoVisitante)}`;
       const mensaje = `Tienes ${horasAntes}h para ingresar tu pronóstico.`;
 
       await prisma.notificacion.create({
@@ -232,8 +235,8 @@ async function notificarFaltantes(
           user.email,
           user.nombre,
           nuevos.map((p) => ({
-            equipoLocal: p.equipoLocal,
-            equipoVisitante: p.equipoVisitante,
+            equipoLocal: formatTeamEs(p.equipoLocal, p.codigoLocal),
+            equipoVisitante: formatTeamEs(p.equipoVisitante, p.codigoVisitante),
             fechaHoraUtc: p.fechaHoraUtc,
           })),
           horasAntes
