@@ -24,13 +24,13 @@ export function AppShell({ title, children, showBack, backHref }: Props) {
       {/* Main content */}
       <main className="lg:ml-56">
         {/* Desktop top bar */}
-        <div className="hidden lg:flex items-center h-16 px-8 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-30">
+        <div className="hidden lg:flex items-center h-16 px-8 border-b glass-nav sticky top-0 z-30">
           {showBack && backHref ? (
-            <Link href={backHref} className="mr-4 text-primary-600 font-medium text-sm hover:underline">
+            <Link href={backHref} className="mr-4 text-primary-600 dark:text-primary-400 font-medium text-sm hover:underline">
               ← Volver
             </Link>
           ) : null}
-          <h1 className="font-bold text-gray-900 dark:text-gray-100 text-xl">{title}</h1>
+          <h1 className="font-bold text-gray-900 dark:text-gray-50 text-xl">{title}</h1>
         </div>
 
         {/* Page content */}

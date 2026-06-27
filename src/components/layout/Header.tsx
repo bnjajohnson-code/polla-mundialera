@@ -20,10 +20,10 @@ export function Header({ title, showBack, backHref }: Props) {
   useEffect(() => setMounted(true), []);
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm dark:bg-gray-900 dark:border-gray-800">
+    <header className="sticky top-0 z-40 glass-nav border-b">
       <div className="flex items-center h-14 px-4 max-w-full lg:hidden">
         {showBack && backHref ? (
-          <Link href={backHref} className="mr-3 text-primary-600 flex items-center gap-1 font-medium text-sm">
+          <Link href={backHref} className="mr-3 text-primary-600 dark:text-primary-400 flex items-center gap-1 font-medium text-sm">
             <ArrowLeft className="w-4 h-4" />
             Volver
           </Link>
@@ -36,10 +36,10 @@ export function Header({ title, showBack, backHref }: Props) {
             />
           </div>
         )}
-        <h1 className="font-bold text-gray-900 dark:text-gray-100 text-base truncate flex-1 text-center lg:text-left">
+        <h1 className="font-bold text-gray-900 dark:text-gray-50 text-base truncate flex-1 text-center lg:text-left">
           {title}
         </h1>
-        <div className="flex items-center gap-1 ml-2">
+        <div className="flex items-center gap-1 ml-2 text-gray-600 dark:text-gray-300">
           <ThemeToggle />
           <NotificationBell variant="header" />
         </div>
