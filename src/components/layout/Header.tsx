@@ -36,7 +36,7 @@ export function Header({ title, showBack, backHref }: Props) {
             />
           </div>
         )}
-        <h1 className="font-bold text-gray-900 dark:text-gray-50 text-base truncate flex-1 text-center lg:text-left">
+        <h1 className="font-bold text-gray-900 dark:text-gray-50 text-xs truncate flex-1 text-center lg:text-left">
           {title}
         </h1>
         <div className="flex items-center gap-1 ml-2 text-gray-600 dark:text-gray-300">
