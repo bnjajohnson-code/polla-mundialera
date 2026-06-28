@@ -51,33 +51,45 @@ export async function POST(req: Request) {
       const homeNombre = homeC.team.displayName;
       const awayNombre = awayC.team.displayName;
 
-      // Los TLAs de placeholder (RD32, RD16W1, etc.) son compartidos entre
-      // varios partidos; solo usar fecha exacta (±2h) para dedup en esos casos.
+      // Buscar partido existente: primero por ESPN ID (unique, sin riesgo de
+      // colisión), luego por TLA pair/parcial/fecha solo si no existe aún.
       const esPlaceholder = homeTla === awayTla || homeTla.startsWith("RD") || awayTla.startsWith("RD");
 
-      const orConditions: object[] = [{ externalId: espnId }];
-      if (!esPlaceholder) {
-        orConditions.push(
-          { codigoLocal: homeTla, codigoVisitante: awayTla },
-          { codigoLocal: awayTla, codigoVisitante: homeTla },
-          { codigoLocal: homeTla, codigoVisitante: null, fase },
-          { codigoLocal: null, codigoVisitante: awayTla, fase },
-        );
-      }
-      orConditions.push({
-        codigoLocal: null,
-        codigoVisitante: null,
-        fase,
-        fechaHoraUtc: {
-          gte: new Date(fechaHoraUtc.getTime() - 2 * 3600_000),
-          lte: new Date(fechaHoraUtc.getTime() + 2 * 3600_000),
-        },
-      });
-
-      const existente = await prisma.partido.findFirst({
-        where: { OR: orConditions },
-        orderBy: { fechaHoraUtc: "asc" },
-      });
+      const existente =
+        (await prisma.partido.findUnique({ where: { externalId: espnId } })) ??
+        (esPlaceholder
+          ? await prisma.partido.findFirst({
+              where: {
+                codigoLocal: null,
+                codigoVisitante: null,
+                fase,
+                fechaHoraUtc: {
+                  gte: new Date(fechaHoraUtc.getTime() - 2 * 3600_000),
+                  lte: new Date(fechaHoraUtc.getTime() + 2 * 3600_000),
+                },
+              },
+              orderBy: { fechaHoraUtc: "asc" },
+            })
+          : await prisma.partido.findFirst({
+              where: {
+                OR: [
+                  { codigoLocal: homeTla, codigoVisitante: awayTla },
+                  { codigoLocal: awayTla, codigoVisitante: homeTla },
+                  { codigoLocal: homeTla, codigoVisitante: null, fase },
+                  { codigoLocal: null, codigoVisitante: awayTla, fase },
+                  {
+                    codigoLocal: null,
+                    codigoVisitante: null,
+                    fase,
+                    fechaHoraUtc: {
+                      gte: new Date(fechaHoraUtc.getTime() - 2 * 3600_000),
+                      lte: new Date(fechaHoraUtc.getTime() + 2 * 3600_000),
+                    },
+                  },
+                ],
+              },
+              orderBy: { fechaHoraUtc: "asc" },
+            }));
 
       if (!existente) {
         await prisma.partido.create({
