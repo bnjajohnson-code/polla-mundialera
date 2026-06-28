@@ -50,12 +50,12 @@ export function espnMapStatus(name: string): EstadoPartido {
   }
 }
 
-export function espnHomeTeam(e: EspnEvent): EspnCompetitor {
-  return e.competitions[0].competitors.find(c => c.homeAway === "home")!;
+export function espnHomeTeam(e: EspnEvent): EspnCompetitor | undefined {
+  return e.competitions?.[0]?.competitors?.find(c => c.homeAway === "home");
 }
 
-export function espnAwayTeam(e: EspnEvent): EspnCompetitor {
-  return e.competitions[0].competitors.find(c => c.homeAway === "away")!;
+export function espnAwayTeam(e: EspnEvent): EspnCompetitor | undefined {
+  return e.competitions?.[0]?.competitors?.find(c => c.homeAway === "away");
 }
 
 export function espnScore(e: EspnEvent): { home: number | null; away: number | null } {

@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
       const homeC = espnHomeTeam(event);
       const awayC = espnAwayTeam(event);
-      if (!homeC || !awayC) continue;
+      if (!homeC?.team?.abbreviation || !awayC?.team?.abbreviation) continue;
 
       const homeTla = homeC.team.abbreviation;
       const awayTla = awayC.team.abbreviation;
@@ -271,7 +271,8 @@ export async function POST(req: Request) {
       notificaciones,
     });
   } catch (err) {
-    console.error("Error en sincronización:", err);
-    return NextResponse.json({ error: "Error en sincronización" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Error en sincronización:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
