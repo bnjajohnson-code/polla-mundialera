@@ -51,27 +51,32 @@ export async function POST(req: Request) {
       const homeNombre = homeC.team.displayName;
       const awayNombre = awayC.team.displayName;
 
-      // Buscar partido existente: por ESPN ID, por par de TLAs (orden directo o
-      // invertido), por local-con-visitante-null, o por doble-null con fecha próxima.
-      const existente = await prisma.partido.findFirst({
-        where: {
-          OR: [
-            { externalId: espnId },
-            { codigoLocal: homeTla, codigoVisitante: awayTla },
-            { codigoLocal: awayTla, codigoVisitante: homeTla },
-            { codigoLocal: homeTla, codigoVisitante: null, fase },
-            { codigoLocal: null, codigoVisitante: awayTla, fase },
-            {
-              codigoLocal: null,
-              codigoVisitante: null,
-              fase,
-              fechaHoraUtc: {
-                gte: new Date(fechaHoraUtc.getTime() - 4 * 3600_000),
-                lte: new Date(fechaHoraUtc.getTime() + 4 * 3600_000),
-              },
-            },
-          ],
+      // Los TLAs de placeholder (RD32, RD16W1, etc.) son compartidos entre
+      // varios partidos; solo usar fecha exacta (±2h) para dedup en esos casos.
+      const esPlaceholder = homeTla === awayTla || homeTla.startsWith("RD") || awayTla.startsWith("RD");
+
+      const orConditions: object[] = [{ externalId: espnId }];
+      if (!esPlaceholder) {
+        orConditions.push(
+          { codigoLocal: homeTla, codigoVisitante: awayTla },
+          { codigoLocal: awayTla, codigoVisitante: homeTla },
+          { codigoLocal: homeTla, codigoVisitante: null, fase },
+          { codigoLocal: null, codigoVisitante: awayTla, fase },
+        );
+      }
+      orConditions.push({
+        codigoLocal: null,
+        codigoVisitante: null,
+        fase,
+        fechaHoraUtc: {
+          gte: new Date(fechaHoraUtc.getTime() - 2 * 3600_000),
+          lte: new Date(fechaHoraUtc.getTime() + 2 * 3600_000),
         },
+      });
+
+      const existente = await prisma.partido.findFirst({
+        where: { OR: orConditions },
+        orderBy: { fechaHoraUtc: "asc" },
       });
 
       if (!existente) {
