@@ -15,30 +15,34 @@ export default async function JugadorPage({ params }: { params: { id: string } }
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const user = await prisma.user.findUnique({
-    where: { id: params.id },
+  const user = await prisma.user.findUnique({ where: { id: params.id } });
+  if (!user) notFound();
+
+  const partidos = await prisma.partido.findMany({
+    orderBy: { fechaHoraUtc: "desc" },
     include: {
       predicciones: {
-        include: { partido: true },
-        orderBy: { partido: { fechaHoraUtc: "desc" } },
+        where: { userId: params.id },
+        select: { id: true, golesLocal: true, golesVisitante: true, puntos: true },
       },
     },
   });
 
-  if (!user) notFound();
-
-  // Solo el dueño del perfil ve sus predicciones de partidos aún abiertos;
-  // para el resto se muestran únicamente las de partidos ya bloqueados.
+  // Solo el dueño del perfil ve el historial de partidos aún abiertos; para el
+  // resto se muestran únicamente los partidos ya bloqueados (incluyendo los
+  // que el jugador dejó sin pronóstico, para que quede visible que faltó).
   const esPropio = session.user.id === user.id;
-  const prediccionesVisibles = esPropio
-    ? user.predicciones
-    : user.predicciones.filter((p) => estaBlockeado(p.partido.fechaHoraUtc, p.partido.estado));
+  const partidosVisibles = esPropio
+    ? partidos.filter((p) => p.predicciones.length > 0)
+    : partidos.filter((p) => estaBlockeado(p.fechaHoraUtc, p.estado));
 
-  const predsFinalizadas = user.predicciones.filter((p) => p.partido.estado === "finalizado");
-  const puntosTotales = predsFinalizadas.reduce((s, p) => s + (p.puntos ?? 0), 0);
   const maxPorFase = (fase: string) => (fase === "grupos" ? 10 : 20);
+  const predsFinalizadas = partidos.filter(
+    (p) => p.estado === "finalizado" && p.predicciones.length > 0
+  );
+  const puntosTotales = predsFinalizadas.reduce((s, p) => s + (p.predicciones[0].puntos ?? 0), 0);
   const plenos = predsFinalizadas.filter(
-    (p) => p.puntos !== null && p.puntos === maxPorFase(p.partido.fase)
+    (p) => p.predicciones[0].puntos !== null && p.predicciones[0].puntos === maxPorFase(p.fase)
   ).length;
 
   return (
@@ -65,7 +69,7 @@ export default async function JugadorPage({ params }: { params: { id: string } }
       {/* Historial */}
       <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3">Historial de pronósticos</h3>
 
-      {prediccionesVisibles.length === 0 ? (
+      {partidosVisibles.length === 0 ? (
         <div className="card p-8 text-center text-gray-400 dark:text-gray-600">
           <p className="text-sm">
             {esPropio
@@ -75,12 +79,12 @@ export default async function JugadorPage({ params }: { params: { id: string } }
         </div>
       ) : (
         <div className="card overflow-hidden">
-          {prediccionesVisibles.map((pred) => {
-            const partido = pred.partido;
+          {partidosVisibles.map((partido) => {
+            const pred = partido.predicciones[0] ?? null;
             const finalizado = partido.estado === "finalizado";
             const tieneResultado = partido.golesLocal !== null && partido.golesVisitante !== null;
             const detalle =
-              finalizado && tieneResultado
+              pred && finalizado && tieneResultado
                 ? calcularPuntos(
                     pred.golesLocal,
                     pred.golesVisitante,
@@ -92,7 +96,7 @@ export default async function JugadorPage({ params }: { params: { id: string } }
 
             return (
               <div
-                key={pred.id}
+                key={partido.id}
                 className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0"
               >
                 <div className="flex-1 min-w-0">
@@ -102,6 +106,9 @@ export default async function JugadorPage({ params }: { params: { id: string } }
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     {FASE_LABELS[partido.fase] ?? partido.fase} · {formatFechaHora(partido.fechaHoraUtc)}
                   </p>
+                  {!pred && (
+                    <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">Sin pronóstico</p>
+                  )}
                   {detalle && (
                     <div className="flex flex-wrap gap-x-2 text-xs mt-0.5">
                       {detalle.aciertoResultado && <span className="text-green-600 dark:text-green-400">✓ Resultado</span>}
@@ -117,7 +124,7 @@ export default async function JugadorPage({ params }: { params: { id: string } }
 
                 <div className="text-right shrink-0">
                   <p className="font-bold text-sm tabular-nums text-gray-700 dark:text-gray-300">
-                    {pred.golesLocal} – {pred.golesVisitante}
+                    {pred ? `${pred.golesLocal} – ${pred.golesVisitante}` : "—"}
                   </p>
                   {finalizado && tieneResultado && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
@@ -131,7 +138,7 @@ export default async function JugadorPage({ params }: { params: { id: string } }
                     <Star
                       className={`w-4 h-4 ${detalle?.pleno ? "fill-gold-400 stroke-gold-500" : "stroke-gray-300 dark:stroke-gray-600"}`}
                     />
-                    <span className="font-bold text-sm tabular-nums dark:text-gray-200">{pred.puntos ?? 0}</span>
+                    <span className="font-bold text-sm tabular-nums dark:text-gray-200">{pred?.puntos ?? 0}</span>
                   </div>
                 )}
               </div>
