@@ -2,14 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import {
-  fetchMatches,
-  mapStage,
-  mapStatus,
-  getScoreRegular,
-  formatTeamName,
-  formatTeamCode,
-} from "@/lib/football-api";
+import { fetchEspnMatches, espnMapFase, espnMapStatus, espnHomeTeam, espnAwayTeam, espnScore } from "@/lib/espn-api";
 import { recalcularYGuardar } from "@/lib/scoring";
 import { notificarResultadoFinal, notificarCambioLider, procesarNotificaciones } from "@/lib/notifications";
 import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
@@ -25,135 +18,192 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  // Fuera del horario de partidos (o en el "hueco" de cada 10 min) no tocamos
-  // la base, para que Neon pueda dormir. El admin siempre puede forzar el sync.
   if (isCron && !isAdmin && !tocaSyncAhora()) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
   try {
-    const apiMatches = await fetchMatches();
+    let espnEvents: Awaited<ReturnType<typeof fetchEspnMatches>> = [];
+    try {
+      espnEvents = await fetchEspnMatches();
+    } catch (espnErr) {
+      console.warn("[sync] ESPN no disponible:", espnErr instanceof Error ? espnErr.message : espnErr);
+    }
+
     let creados = 0;
     let actualizados = 0;
     let algoFinalizo = false;
+    const espnIdsProcesados = new Set<number>();
 
-    for (const match of apiMatches) {
-      const fase = mapStage(match.stage);
-      const estado = mapStatus(match.status);
-      const score = getScoreRegular(match.score);
-      const golesLocal = score.home ?? null;
-      const golesVisitante = score.away ?? null;
+    for (const event of espnEvents) {
+      const espnId = parseInt(event.id, 10);
+      const fase = espnMapFase(event.season.slug);
+      const estado = espnMapStatus(event.status.type.name);
+      const fechaHoraUtc = new Date(event.date);
+      const score = espnScore(event);
 
-      const golesLocalReg =
-        match.score.regularTime?.home ?? match.score.fullTime.home ?? null;
-      const golesVisitanteReg =
-        match.score.regularTime?.away ?? match.score.fullTime.away ?? null;
+      const homeC = espnHomeTeam(event);
+      const awayC = espnAwayTeam(event);
+      if (!homeC?.team?.abbreviation || !awayC?.team?.abbreviation) continue;
 
-      const existente = await prisma.partido.findUnique({
-        where: { externalId: match.id },
-      });
+      const homeTla = homeC.team.abbreviation;
+      const awayTla = awayC.team.abbreviation;
+      const homeNombre = homeC.team.displayName;
+      const awayNombre = awayC.team.displayName;
+
+      // Buscar partido existente: primero por ESPN ID (unique, sin riesgo de
+      // colisión), luego por TLA pair/parcial/fecha solo si no existe aún.
+      const esPlaceholder = homeTla === awayTla || homeTla.startsWith("RD") || awayTla.startsWith("RD");
+
+      const existente =
+        (await prisma.partido.findUnique({ where: { externalId: espnId } })) ??
+        (esPlaceholder
+          ? await prisma.partido.findFirst({
+              where: {
+                codigoLocal: null,
+                codigoVisitante: null,
+                fase,
+                fechaHoraUtc: {
+                  gte: new Date(fechaHoraUtc.getTime() - 2 * 3600_000),
+                  lte: new Date(fechaHoraUtc.getTime() + 2 * 3600_000),
+                },
+              },
+              orderBy: { fechaHoraUtc: "asc" },
+            })
+          : await prisma.partido.findFirst({
+              where: {
+                OR: [
+                  { codigoLocal: homeTla, codigoVisitante: awayTla },
+                  { codigoLocal: awayTla, codigoVisitante: homeTla },
+                  { codigoLocal: homeTla, codigoVisitante: null, fase },
+                  { codigoLocal: null, codigoVisitante: awayTla, fase },
+                  {
+                    codigoLocal: null,
+                    codigoVisitante: null,
+                    fase,
+                    fechaHoraUtc: {
+                      gte: new Date(fechaHoraUtc.getTime() - 2 * 3600_000),
+                      lte: new Date(fechaHoraUtc.getTime() + 2 * 3600_000),
+                    },
+                  },
+                ],
+              },
+              orderBy: { fechaHoraUtc: "asc" },
+            }));
 
       if (!existente) {
         await prisma.partido.create({
           data: {
-            externalId: match.id,
+            externalId: espnId,
             fase,
-            grupo: match.group,
-            jornada: match.matchday,
-            equipoLocal: formatTeamName(match.homeTeam),
-            equipoVisitante: formatTeamName(match.awayTeam),
-            codigoLocal: formatTeamCode(match.homeTeam),
-            codigoVisitante: formatTeamCode(match.awayTeam),
-            fechaHoraUtc: new Date(match.utcDate),
+            equipoLocal: homeNombre,
+            equipoVisitante: awayNombre,
+            codigoLocal: homeTla,
+            codigoVisitante: awayTla,
+            fechaHoraUtc,
             estado,
-            golesLocal,
-            golesVisitante,
-            golesLocalReg,
-            golesVisitanteReg,
+            golesLocal: score.home,
+            golesVisitante: score.away,
+            golesLocalReg: estado === "finalizado" ? score.home : null,
+            golesVisitanteReg: estado === "finalizado" ? score.away : null,
           },
         });
         creados++;
-      } else {
-        // La API gratuita a veces "parpadea": devuelve datos viejos (TIMED/null)
-        // para un partido que ya reportó en juego o con goles. Nunca retroceder.
-        const regresionEstado =
-          (existente.estado === "en_juego" && estado === "programado") ||
-          (existente.estado === "finalizado" && estado !== "finalizado");
-        const regresionGoles =
-          existente.golesLocal !== null && golesLocal === null;
+        espnIdsProcesados.add(espnId);
+        continue;
+      }
 
-        const nuevoEstado = regresionEstado ? existente.estado : estado;
-        const aplicarGoles = !existente.resultadoManual && !regresionGoles;
+      espnIdsProcesados.add(espnId);
 
-        const updateData: Record<string, unknown> = {
-          fase,
-          grupo: match.group,
-          jornada: match.matchday,
-          equipoLocal: formatTeamName(match.homeTeam),
-          equipoVisitante: formatTeamName(match.awayTeam),
-          codigoLocal: formatTeamCode(match.homeTeam),
-          codigoVisitante: formatTeamCode(match.awayTeam),
-          fechaHoraUtc: new Date(match.utcDate),
-          estado: nuevoEstado,
-        };
+      // Anti-regresión: nunca retroceder estado ni goles ya confirmados
+      const regresionEstado =
+        (existente.estado === "en_juego" && estado === "programado") ||
+        (existente.estado === "finalizado" && estado !== "finalizado");
+      const regresionGoles =
+        existente.golesLocal !== null && score.home === null;
 
-        if (aplicarGoles) {
-          updateData.golesLocal = golesLocal;
-          updateData.golesVisitante = golesVisitante;
-          updateData.golesLocalReg = golesLocalReg;
-          updateData.golesVisitanteReg = golesVisitanteReg;
+      const nuevoEstado = regresionEstado ? existente.estado : estado;
+      const aplicarGoles = !existente.resultadoManual && !regresionGoles;
+
+      // Equipos: rellenar sólo si estaban vacíos (no invertir si ya existen)
+      const mismoOrden =
+        existente.codigoLocal === homeTla || existente.codigoLocal === null;
+      const nuevoLocal    = mismoOrden ? homeNombre : existente.equipoLocal;
+      const nuevoVisitante = mismoOrden ? awayNombre : existente.equipoVisitante;
+      const nuevoTlaLocal  = mismoOrden ? homeTla    : existente.codigoLocal;
+      const nuevoTlaVisit  = mismoOrden ? awayTla    : existente.codigoVisitante;
+
+      const updateData: Record<string, unknown> = {
+        externalId: espnId,
+        fase,
+        equipoLocal: nuevoLocal,
+        equipoVisitante: nuevoVisitante,
+        codigoLocal: nuevoTlaLocal,
+        codigoVisitante: nuevoTlaVisit,
+        fechaHoraUtc,
+        estado: nuevoEstado,
+      };
+
+      if (aplicarGoles) {
+        updateData.golesLocal = score.home;
+        updateData.golesVisitante = score.away;
+        if (estado === "finalizado") {
+          updateData.golesLocalReg = existente.golesLocalReg ?? score.home;
+          updateData.golesVisitanteReg = existente.golesVisitanteReg ?? score.away;
         }
+      }
 
-        // Solo escribir si algo cambió de verdad (evita reescribir los 104
-        // partidos en cada corrida y mantener la base ocupada sin necesidad).
-        const cambio =
-          existente.fase !== updateData.fase ||
-          existente.grupo !== updateData.grupo ||
-          existente.jornada !== updateData.jornada ||
-          existente.equipoLocal !== updateData.equipoLocal ||
-          existente.equipoVisitante !== updateData.equipoVisitante ||
-          existente.codigoLocal !== updateData.codigoLocal ||
-          existente.codigoVisitante !== updateData.codigoVisitante ||
-          existente.fechaHoraUtc.getTime() !== (updateData.fechaHoraUtc as Date).getTime() ||
-          existente.estado !== nuevoEstado ||
-          (aplicarGoles &&
-            (existente.golesLocal !== golesLocal ||
-              existente.golesVisitante !== golesVisitante ||
-              existente.golesLocalReg !== golesLocalReg ||
-              existente.golesVisitanteReg !== golesVisitanteReg));
+      const cambio =
+        existente.externalId !== espnId ||
+        existente.codigoVisitante !== nuevoTlaVisit ||
+        existente.fechaHoraUtc.getTime() !== fechaHoraUtc.getTime() ||
+        existente.estado !== nuevoEstado ||
+        (aplicarGoles && (existente.golesLocal !== score.home || existente.golesVisitante !== score.away));
 
-        if (cambio) {
-          await prisma.partido.update({
-            where: { id: existente.id },
-            data: updateData,
-          });
-          actualizados++;
-        }
+      if (cambio) {
+        await prisma.partido.update({ where: { id: existente.id }, data: updateData });
+        actualizados++;
+      }
 
-        const yaFinalizado = existente.estado === "finalizado";
-        const ahoraFinalizado = estado === "finalizado";
-        const golesDisponibles = golesLocal !== null && golesVisitante !== null;
-        // Recalcular también si la API corrige el marcador de un partido ya finalizado
-        const marcadorCambio =
-          existente.golesLocal !== golesLocal || existente.golesVisitante !== golesVisitante;
+      const yaFinalizado = existente.estado === "finalizado";
+      const ahoraFinalizado = nuevoEstado === "finalizado";
+      const golesDisponibles = score.home !== null && score.away !== null;
+      const marcadorCambio = existente.golesLocal !== score.home || existente.golesVisitante !== score.away;
 
-        if (
-          ahoraFinalizado &&
-          golesDisponibles &&
-          !existente.resultadoManual &&
-          (!yaFinalizado || marcadorCambio)
-        ) {
-          await recalcularYGuardar(existente.id, golesLocal!, golesVisitante!, fase);
-          await notificarResultadoFinal(existente.id, golesLocal!, golesVisitante!);
-          algoFinalizo = true;
-        }
+      if (ahoraFinalizado && golesDisponibles && !existente.resultadoManual && (!yaFinalizado || marcadorCambio)) {
+        await recalcularYGuardar(existente.id, score.home!, score.away!, fase);
+        await notificarResultadoFinal(existente.id, score.home!, score.away!);
+        algoFinalizo = true;
       }
     }
 
-    // ── Fuente secundaria: worldcup26.ir (live scores) ──────────────────────
-    // football-data.org gratuito entrega resultados con horas de retraso.
-    // Para partidos que football-data aún no finaliza, usamos worldcup26.ir.
-    // Cuando football-data finalmente reporte, su dato prevalece (arriba).
+    // Limpiar duplicados wc26 (2026xxx) que ya tienen su equivalente ESPN
+    const wc26Duplicados = await prisma.partido.findMany({
+      where: {
+        externalId: { gte: 2026000, lt: 2027000 },
+      },
+      include: { _count: { select: { predicciones: true } } },
+    });
+    let eliminados = 0;
+    for (const dup of wc26Duplicados) {
+      if (dup._count.predicciones > 0) continue;
+      const tieneEspn =
+        dup.codigoLocal &&
+        dup.codigoVisitante &&
+        (await prisma.partido.findFirst({
+          where: {
+            externalId: { lt: 2026000 },
+            codigoLocal: dup.codigoLocal,
+            codigoVisitante: dup.codigoVisitante,
+          },
+        }));
+      if (tieneEspn) {
+        await prisma.partido.delete({ where: { id: dup.id } });
+        eliminados++;
+      }
+    }
+
+    // ── worldcup26.ir: sólo live scores para partidos en_juego ──────────────
     let liveActualizados = 0;
     const wc26Games = await fetchWc26Games();
 
@@ -162,47 +212,53 @@ export async function POST(req: Request) {
         const estadoWc = wc26Estado(game);
         if (estadoWc === "notstarted") continue;
 
-        const score = wc26Score(game);
-        if (!score) continue;
+        const wc26Sc = wc26Score(game);
+        if (!wc26Sc) continue;
 
         const tlaLocal = wc26NameToTla(game.home_team_name_en);
         const tlaVisitante = wc26NameToTla(game.away_team_name_en);
         if (!tlaLocal || !tlaVisitante) continue;
 
         const partido = await prisma.partido.findFirst({
-          where: { codigoLocal: tlaLocal, codigoVisitante: tlaVisitante },
+          where: {
+            OR: [
+              { codigoLocal: tlaLocal, codigoVisitante: tlaVisitante },
+              { codigoLocal: tlaVisitante, codigoVisitante: tlaLocal },
+            ],
+          },
         });
 
-        // football-data manda: si ya está finalizado (o es manual), no tocar
         if (!partido || partido.resultadoManual || partido.estado === "finalizado") continue;
 
-        // No aplicar live score antes de que cierre el plazo de pronósticos
-        // (10 min antes del pitazo). Si lo hacemos antes, se exponen los
-        // pronósticos de otros jugadores y se bloquean predicciones aún abiertas.
         const MINUTOS_ANTES_CIERRE = 10;
-        const cierreMs = new Date(partido.fechaHoraUtc).getTime() - MINUTOS_ANTES_CIERRE * 60 * 1000;
+        const cierreMs = partido.fechaHoraUtc.getTime() - MINUTOS_ANTES_CIERRE * 60 * 1000;
         if (Date.now() < cierreMs) continue;
+
+        // Respetar el orden real del partido en DB (home puede ser away en wc26)
+        const localEsHome = partido.codigoLocal === tlaLocal;
+        const golesLocal    = localEsHome ? wc26Sc.home : wc26Sc.away;
+        const golesVisitante = localEsHome ? wc26Sc.away : wc26Sc.home;
 
         const sinCambios =
           partido.estado === estadoWc &&
-          partido.golesLocal === score.home &&
-          partido.golesVisitante === score.away;
+          partido.golesLocal === golesLocal &&
+          partido.golesVisitante === golesVisitante;
         if (sinCambios) continue;
 
         await prisma.partido.update({
           where: { id: partido.id },
           data: {
             estado: estadoWc,
-            golesLocal: score.home,
-            golesVisitante: score.away,
-            golesLocalReg: score.home,
-            golesVisitanteReg: score.away,
+            golesLocal,
+            golesVisitante,
+            golesLocalReg: golesLocal,
+            golesVisitanteReg: golesVisitante,
           },
         });
 
         if (estadoWc === "finalizado") {
-          await recalcularYGuardar(partido.id, score.home, score.away, partido.fase);
-          await notificarResultadoFinal(partido.id, score.home, score.away);
+          await recalcularYGuardar(partido.id, golesLocal, golesVisitante, partido.fase);
+          await notificarResultadoFinal(partido.id, golesLocal, golesVisitante);
           algoFinalizo = true;
         }
 
@@ -210,16 +266,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Solo comprobar el cambio de líder si algún partido finalizó en esta
-    // corrida (la tabla solo puede cambiar entonces). Evita consultar a todos
-    // los usuarios y sus predicciones en cada sync.
     if (algoFinalizo) {
       await notificarCambioLider();
     }
 
-    // Cron unificado: las notificaciones pre-partido se procesan aquí mismo en
-    // vez de un cron aparte, para no duplicar invocaciones en Vercel. Solo corre
-    // dentro de la ventana de partidos (el guard de arriba ya lo garantiza).
     let notificaciones: Awaited<ReturnType<typeof procesarNotificaciones>> | null = null;
     try {
       notificaciones = await procesarNotificaciones();
@@ -231,13 +281,15 @@ export async function POST(req: Request) {
       ok: true,
       creados,
       actualizados,
+      eliminados,
       liveActualizados,
       liveDisponible: wc26Games !== null,
-      total: apiMatches.length,
+      total: espnEvents.length,
       notificaciones,
     });
   } catch (err) {
-    console.error("Error en sincronización:", err);
-    return NextResponse.json({ error: "Error en sincronización" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Error en sincronización:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

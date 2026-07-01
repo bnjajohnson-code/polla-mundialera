@@ -33,9 +33,9 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-40">
+    <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-56 glass-nav border-r z-40">
       {/* Logo */}
-      <div className="flex items-center h-16 px-5 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex items-center h-16 px-5 border-b border-[var(--glass-border)]">
         <img
           src={mounted ? (resolvedTheme === "dark" ? "/logo-dark.png" : "/logo-light.png") : "/logo-light.png"}
           alt="Comtec"
@@ -45,7 +45,7 @@ export function Sidebar() {
 
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-wider px-3 mb-2">
+        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 mb-2">
           Menú
         </p>
         {allItems.map((item) => {
@@ -56,10 +56,10 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                "glass-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150",
                 active
-                  ? "bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                  ? "bg-primary-600/10 text-primary-700 dark:bg-primary-400/12 dark:text-primary-300"
+                  : "text-gray-700 hover:bg-black/5 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-white/8 dark:hover:text-white"
               )}
             >
               <Icon className={cn("w-5 h-5 flex-shrink-0", active ? "stroke-[2.5]" : "stroke-[1.5]")} />
@@ -70,10 +70,10 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom: notifications + theme + user */}
-      <div className="px-3 pb-4 border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
+      <div className="px-3 pb-4 border-t border-[var(--glass-border)] pt-3 space-y-1">
         <NotificationBell variant="sidebar" />
 
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200">
           <ThemeToggle className="p-0 rounded-none hover:bg-transparent dark:hover:bg-transparent" />
           <span>Modo oscuro</span>
         </div>
@@ -81,15 +81,15 @@ export function Sidebar() {
         {session?.user && (
           <div className="flex items-center gap-3 px-3 py-2 mt-1">
             <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-700 dark:text-primary-400 font-bold text-sm">
+              <span className="text-primary-700 dark:text-primary-300 font-bold text-sm">
                 {session.user.name?.[0]?.toUpperCase() ?? "U"}
               </span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-50 truncate">
                 {session.user.name}
               </p>
-              <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user.email}</p>
             </div>
           </div>
         )}
