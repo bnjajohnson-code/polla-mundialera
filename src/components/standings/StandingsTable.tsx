@@ -8,9 +8,11 @@ import { useSession } from "next-auth/react";
 
 interface Props {
   tabla: PosicionTabla[];
+  /** Modo simulación: puntos hipotéticos ganados por jugador en el partido simulado. */
+  puntosSimulados?: Record<string, number>;
 }
 
-export function StandingsTable({ tabla }: Props) {
+export function StandingsTable({ tabla, puntosSimulados }: Props) {
   const { data: session } = useSession();
 
   return (
@@ -63,6 +65,11 @@ export function StandingsTable({ tabla }: Props) {
               <span className={cn("font-black text-base tabular-nums text-gray-900 dark:text-gray-100", isMe && "text-primary-700 dark:text-primary-400")}>
                 {row.puntosTotales}
               </span>
+              {puntosSimulados && (
+                <p className="text-[10px] font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  +{puntosSimulados[row.userId] ?? 0}
+                </p>
+              )}
             </div>
 
             {/* Plenos */}
