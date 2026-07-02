@@ -7,7 +7,17 @@ import { recalcularYGuardar } from "@/lib/scoring";
 import { notificarResultadoFinal, notificarCambioLider, procesarNotificaciones } from "@/lib/notifications";
 import { fetchWc26Games, wc26NameToTla, wc26Estado, wc26Score } from "@/lib/worldcup26";
 import { tocaSyncAhora } from "@/lib/sync-window";
+import { getTeamInfo } from "@/lib/teams";
 import type { Partido } from "@prisma/client";
+
+// ESPN marca los cupos de eliminatoria aún no definidos con texto placeholder
+// que NO sigue un patrón consistente entre rondas: "RD32", "RD16 W1" (octavos/
+// cuartos), pero "QFW1"/"QW4" (semifinal, incluso inconsistente entre sí) y
+// "SF L1" (3er puesto), "SFW1" (final). En vez de intentar adivinar cada
+// prefijo, un código es "real" si corresponde a un equipo conocido en
+// teams.ts; cualquier otra cosa (sea cual sea el texto que invente ESPN para
+// esa ronda) se trata como no resuelto todavía.
+const esCodigoReal = (c: string | null): boolean => getTeamInfo(c) !== null;
 
 /**
  * Sync: trae todos los partidos de ESPN de una sola vez, y resuelve el
@@ -89,7 +99,7 @@ export async function POST(req: Request) {
       const awayTla = awayC.team.abbreviation;
       const homeNombre = homeC.team.displayName;
       const awayNombre = awayC.team.displayName;
-      const esPlaceholder = homeTla === awayTla || homeTla.startsWith("RD") || awayTla.startsWith("RD");
+      const esPlaceholder = homeTla === awayTla || !esCodigoReal(homeTla) || !esCodigoReal(awayTla);
 
       let existente: Partido | undefined =
         byExternalId.get(espnId) ??
@@ -155,16 +165,15 @@ export async function POST(req: Request) {
       const nuevoEstado = regresionEstado ? existente.estado : estado;
       const aplicarGoles = !existente.resultadoManual && !regresionGoles;
 
-      // "RD32"/null equivalen a "todavía sin equipo real": una fila con algún
-      // lado así resuelto NO cuenta como orden ya fijado, y hay que adoptar
-      // directamente la asignación home/away que traiga ESPN. Sin esto, un
-      // cupo de eliminatoria que arranca como "RD32 vs RD32" nunca se
-      // actualiza cuando ESPN por fin define los equipos: como "RD32" no es
-      // `null`, el código de abajo lo trataba como ya resuelto y "en orden
-      // invertido", conservando el placeholder viejo para siempre.
-      const esCodigoPlaceholder = (c: string | null) => !c || c.startsWith("RD");
-      const existenteResuelto =
-        !esCodigoPlaceholder(existente.codigoLocal) && !esCodigoPlaceholder(existente.codigoVisitante);
+      // Un código placeholder (no reconocido como equipo real) equivale a
+      // "todavía sin equipo": una fila con algún lado así NO cuenta como
+      // orden ya fijado, y hay que adoptar directamente la asignación
+      // home/away que traiga ESPN. Sin esto, un cupo de eliminatoria que
+      // arranca con un placeholder nunca se actualiza cuando ESPN por fin
+      // define los equipos: al no ser `null`, el código de abajo lo trataba
+      // como ya resuelto y "en orden invertido", conservando el placeholder
+      // viejo para siempre.
+      const existenteResuelto = esCodigoReal(existente.codigoLocal) && esCodigoReal(existente.codigoVisitante);
       const mismoOrden = !existenteResuelto || existente.codigoLocal === homeTla;
       const nuevoLocal = mismoOrden ? homeNombre : existente.equipoLocal;
       const nuevoVisitante = mismoOrden ? awayNombre : existente.equipoVisitante;
