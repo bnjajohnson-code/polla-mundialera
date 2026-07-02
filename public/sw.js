@@ -1,6 +1,13 @@
 // Service Worker — Polla Mundialera 2026
-const CACHE_NAME = "polla-v1";
-const STATIC_ASSETS = ["/", "/fixture", "/tabla", "/perfil", "/manifest.json"];
+//
+// Los datos (fixture, tabla, pronósticos) cambian todo el tiempo durante el
+// Mundial, así que las páginas HTML NUNCA se cachean: si alguna vez se cachea
+// una respuesta vieja (por un corte de red puntual), queda pegada mostrando
+// datos desactualizados hasta que alguien note el problema. Solo se cachean
+// assets verdaderamente estáticos (íconos, manifest) para dar algo de
+// capacidad offline sin arriesgar contenido obsoleto.
+const CACHE_NAME = "polla-v2";
+const STATIC_ASSETS = ["/manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -20,24 +27,28 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Network-first para API, cache-first para assets estáticos
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // No cachear peticiones API
-  if (url.pathname.startsWith("/api/")) return;
+  // Nunca cachear: API, y cualquier navegación de página (documentos HTML).
+  // Siempre red directa, sin fallback a caché — mejor un error visible que
+  // datos viejos silenciosos.
+  if (url.pathname.startsWith("/api/") || request.mode === "navigate") return;
 
+  // Solo íconos/manifest/assets estáticos: cache-first con red de respaldo.
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok && request.method === "GET") {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(request))
+    caches.match(request).then(
+      (cached) =>
+        cached ??
+        fetch(request).then((response) => {
+          if (response.ok && request.method === "GET") {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+    )
   );
 });
 
