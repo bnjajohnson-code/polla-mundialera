@@ -181,8 +181,19 @@ export async function POST(req: Request) {
         }
       }
 
+      // OJO: comparar TODOS los campos que updateData puede tocar. ESPN
+      // reutiliza el mismo externalId para un cupo de eliminatoria desde el
+      // arranque del cuadro, solo actualizando equipo/código a medida que se
+      // define (ej. "Round of 32 1 Winner" -> "Canada"); si esta comparación
+      // se queda corta, el sync encuentra la fila correcta pero decide que no
+      // hay nada que escribir, dejando el nombre/código de equipo viejo para
+      // siempre aunque ESPN ya lo haya resuelto.
       const cambio =
         existente.externalId !== espnId ||
+        existente.fase !== fase ||
+        existente.equipoLocal !== nuevoLocal ||
+        existente.equipoVisitante !== nuevoVisitante ||
+        existente.codigoLocal !== nuevoTlaLocal ||
         existente.codigoVisitante !== nuevoTlaVisit ||
         existente.fechaHoraUtc.getTime() !== fechaHoraUtc.getTime() ||
         existente.estado !== nuevoEstado ||
