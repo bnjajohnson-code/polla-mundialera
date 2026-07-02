@@ -155,7 +155,17 @@ export async function POST(req: Request) {
       const nuevoEstado = regresionEstado ? existente.estado : estado;
       const aplicarGoles = !existente.resultadoManual && !regresionGoles;
 
-      const mismoOrden = existente.codigoLocal === homeTla || existente.codigoLocal === null;
+      // "RD32"/null equivalen a "todavía sin equipo real": una fila con algún
+      // lado así resuelto NO cuenta como orden ya fijado, y hay que adoptar
+      // directamente la asignación home/away que traiga ESPN. Sin esto, un
+      // cupo de eliminatoria que arranca como "RD32 vs RD32" nunca se
+      // actualiza cuando ESPN por fin define los equipos: como "RD32" no es
+      // `null`, el código de abajo lo trataba como ya resuelto y "en orden
+      // invertido", conservando el placeholder viejo para siempre.
+      const esCodigoPlaceholder = (c: string | null) => !c || c.startsWith("RD");
+      const existenteResuelto =
+        !esCodigoPlaceholder(existente.codigoLocal) && !esCodigoPlaceholder(existente.codigoVisitante);
+      const mismoOrden = !existenteResuelto || existente.codigoLocal === homeTla;
       const nuevoLocal = mismoOrden ? homeNombre : existente.equipoLocal;
       const nuevoVisitante = mismoOrden ? awayNombre : existente.equipoVisitante;
       const nuevoTlaLocal = mismoOrden ? homeTla : existente.codigoLocal;
