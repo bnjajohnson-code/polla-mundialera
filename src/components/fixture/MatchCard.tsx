@@ -124,7 +124,7 @@ export function MatchCard({ partido }: Props) {
       {/* Link siempre visible */}
       <Link
         href={`/partido/${partido.id}`}
-        className="flex items-center justify-center gap-1 text-sm text-primary-600 dark:text-primary-400 font-medium py-1 mt-1"
+        className="pressable rounded-xl flex items-center justify-center gap-1 text-sm text-primary-600 dark:text-primary-400 font-medium py-1 mt-1"
       >
         Ver pronósticos del grupo <ChevronRight className="w-4 h-4" />
       </Link>

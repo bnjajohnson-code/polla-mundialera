@@ -16,7 +16,7 @@ export function StandingsTable({ tabla, puntosSimulados }: Props) {
   const { data: session } = useSession();
 
   return (
-    <div className="card overflow-hidden">
+    <div className="card overflow-hidden stagger">
       {/* Encabezado */}
       <div className="grid grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem] gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
         <span>#</span>
@@ -35,8 +35,8 @@ export function StandingsTable({ tabla, puntosSimulados }: Props) {
             key={row.userId}
             href={`/jugador/${row.userId}`}
             className={cn(
-              "grid grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem] gap-2 px-4 py-3 items-center",
-              "border-b border-gray-50 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+              "pressable grid grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem] gap-2 px-4 py-3 items-center",
+              "border-b border-gray-50 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800",
               isMe && "bg-primary-50 dark:bg-primary-950 hover:bg-primary-50 dark:hover:bg-primary-950"
             )}
           >

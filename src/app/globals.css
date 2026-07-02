@@ -90,27 +90,82 @@
     padding-bottom: calc(5.5rem + var(--safe-area-inset-bottom));
   }
 
+  /* ── Animaciones de entrada (páginas y listas) ─────────────────────────── */
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Aplicada por src/app/template.tsx: App Router re-monta el template en cada
+     navegación, disparando la entrada de la página sin JS adicional. */
+  .page-enter {
+    animation: rise-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Cascada de entrada para listas (tabla de posiciones, partidos del día).
+     Cap a 12 hijos para que las listas largas no se eternicen. */
+  .stagger > * { animation: rise-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .stagger > *:nth-child(1)  { animation-delay: 0ms; }
+  .stagger > *:nth-child(2)  { animation-delay: 30ms; }
+  .stagger > *:nth-child(3)  { animation-delay: 60ms; }
+  .stagger > *:nth-child(4)  { animation-delay: 90ms; }
+  .stagger > *:nth-child(5)  { animation-delay: 120ms; }
+  .stagger > *:nth-child(6)  { animation-delay: 150ms; }
+  .stagger > *:nth-child(7)  { animation-delay: 180ms; }
+  .stagger > *:nth-child(8)  { animation-delay: 210ms; }
+  .stagger > *:nth-child(9)  { animation-delay: 240ms; }
+  .stagger > *:nth-child(10) { animation-delay: 270ms; }
+  .stagger > *:nth-child(11) { animation-delay: 300ms; }
+  .stagger > *:nth-child(12) { animation-delay: 330ms; }
+  .stagger > *:nth-child(n+13) { animation-delay: 360ms; }
+
+  /* Feedback táctil para tarjetas/filas clickeables */
+  .pressable {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  }
+  .pressable:active { transform: scale(0.98); }
+  @media (hover: hover) {
+    .pressable:hover {
+      box-shadow: 0 4px 12px rgb(0 0 0 / 0.08);
+      transform: translateY(-1px);
+    }
+  }
+
+  .glass-item:active { transform: scale(0.95); }
+
   @media (prefers-reduced-motion: reduce) {
     .glass-nav,
     .glass-item::before { transition: none; }
+    .page-enter,
+    .stagger > * { animation: none; }
+    .pressable,
+    .pressable:active,
+    .pressable:hover,
+    .glass-item,
+    .glass-item:active { transform: none; transition: none; box-shadow: none; }
+    .stepper-btn:active,
+    .btn-primary:active,
+    .btn-secondary:active,
+    .btn-danger:active { transform: none; }
   }
 
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 active:bg-primary-800
            text-white font-semibold rounded-xl px-5 py-3
-           transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+           transition-all duration-150 active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
     @apply bg-white hover:bg-gray-50 active:bg-gray-100
            text-gray-700 font-semibold rounded-xl px-5 py-3 border border-gray-200
-           transition-colors duration-150
+           transition-all duration-150 active:scale-[0.98]
            dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 dark:border-gray-700;
   }
 
   .btn-danger {
     @apply bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl px-5 py-3
-           transition-colors duration-150;
+           transition-all duration-150 active:scale-[0.98];
   }
 
   .card {
@@ -133,7 +188,7 @@
   .stepper-btn {
     @apply w-10 h-10 rounded-full bg-primary-50 hover:bg-primary-100 active:bg-primary-200
            text-primary-700 font-bold text-xl flex items-center justify-center
-           transition-colors touch-manipulation select-none
+           transition-all duration-100 active:scale-90 touch-manipulation select-none
            dark:bg-primary-900 dark:hover:bg-primary-800 dark:text-primary-300;
   }
 }

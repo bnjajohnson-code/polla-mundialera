@@ -86,7 +86,7 @@ export default async function FixturePage() {
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 capitalize mb-2 ml-1">
                   {fecha}
                 </p>
-                <div className="space-y-3">
+                <div className="space-y-3 stagger">
                   {ps.map((p: (typeof partidos)[number]) => (
                     <div key={p.id} id={p.id === targetId ? "fixture-hoy" : undefined} className="scroll-mt-20">
                       <MatchCard

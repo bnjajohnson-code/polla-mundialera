@@ -153,7 +153,7 @@ export function NotificationBell({ variant = "header", className }: Props) {
                   key={n.id}
                   onClick={() => irA(n)}
                   className={cn(
-                    "w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
+                    "pressable w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50",
                     !n.leido && "bg-blue-50 dark:bg-blue-950/40"
                   )}
                 >

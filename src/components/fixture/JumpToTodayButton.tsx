@@ -16,7 +16,7 @@ export function JumpToTodayButton({ label = "Hoy" }: { label?: string }) {
   return (
     <button
       onClick={handleClick}
-      className="fixed right-4 lg:bottom-8 z-30 flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm pl-3 pr-4 py-3 rounded-full shadow-lg shadow-primary-600/30 transition-colors"
+      className="pressable fixed right-4 lg:bottom-8 z-30 flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm pl-3 pr-4 py-3 rounded-full shadow-lg shadow-primary-600/30"
       style={{ bottom: 'calc(5.5rem + var(--safe-area-inset-bottom))' }}
       aria-label="Ir a los partidos de hoy"
     >

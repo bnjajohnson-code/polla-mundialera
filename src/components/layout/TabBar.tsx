@@ -35,7 +35,7 @@ export function TabBar() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "glass-item flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors duration-150 rounded-3xl mx-0.5",
+                "glass-item flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium transition-all duration-150 rounded-3xl mx-0.5",
                 active
                   ? "text-primary-600 dark:text-primary-300"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
