@@ -96,10 +96,20 @@
     to   { opacity: 1; transform: none; }
   }
 
-  /* Aplicada por src/app/template.tsx: App Router re-monta el template en cada
-     navegación, disparando la entrada de la página sin JS adicional. */
+  /* Solo opacidad, a propósito: el contenido de página puede incluir elementos
+     `fixed` (ej. JumpToTodayButton). Un ancestro que anima `transform` se
+     convierte en su contenedor de referencia y rompe su posición respecto al
+     viewport — ya pasó dos veces. `.stagger` sí puede usar transform porque
+     sus filas nunca contienen elementos `fixed`. */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Aplicada en AppShell al contenedor del contenido (con key={pathname} para
+     forzar el remount en cada navegación). */
   .page-enter {
-    animation: rise-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: fade-in 0.22s ease-out both;
   }
 
   /* Cascada de entrada para listas (tabla de posiciones, partidos del día).

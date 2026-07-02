@@ -37,9 +37,11 @@ export function AppShell({ title, children, showBack, backHref }: Props) {
         </div>
 
         {/* Page content — key por ruta fuerza el remount que dispara .page-enter
-            en cada navegación. Deliberadamente NO envuelve TabBar/Sidebar (fixed):
-            animar `transform` en un ancestro de un elemento fixed lo convierte en
-            su contenedor de referencia y rompe su posicionamiento respecto al viewport. */}
+            en cada navegación. .page-enter anima solo opacidad (ver globals.css):
+            el contenido de página puede incluir elementos `fixed` propios (ej.
+            JumpToTodayButton en /fixture), y animar `transform` en un ancestro
+            los convierte en su contenedor de referencia, rompiendo su posición
+            respecto al viewport. */}
         <div key={pathname} className="page-enter max-w-4xl mx-auto px-4 lg:px-8 pt-20 lg:pt-4 pb-tab-bar lg:pb-8">
           {children}
         </div>
