@@ -5,6 +5,8 @@
  * dirigido solo a los usuarios que aún no han pronosticado ese partido.
  */
 
+import { formatInTimeZone } from "date-fns-tz";
+import { es } from "date-fns/locale";
 import { prisma } from "@/lib/prisma";
 import { sendEmailFaltantePronostico } from "@/lib/email";
 import { sendPushNotification } from "@/lib/push";
@@ -150,6 +152,49 @@ export async function notificarResultadoFinal(
           title: titulo,
           body: mensaje,
           url: "/tabla",
+        })
+      )
+  );
+}
+
+/**
+ * Notifica a todos los suscritos que el horario de un partido cambió (ej.
+ * corrección manual del admin por clima). Se llama justo después de guardar
+ * el nuevo horario; sin dedup porque cada cambio es un evento puntual
+ * disparado a mano, no algo que el cron repita.
+ */
+export async function notificarCambioHorario(
+  partidoId: string,
+  nuevaFechaUtc: Date
+): Promise<void> {
+  const partido = await prisma.partido.findUnique({ where: { id: partidoId } });
+  if (!partido) return;
+
+  const local = formatTeamEs(partido.equipoLocal, partido.codigoLocal);
+  const visitante = formatTeamEs(partido.equipoVisitante, partido.codigoVisitante);
+  const horaSantiago = formatInTimeZone(nuevaFechaUtc, "America/Santiago", "HH:mm", { locale: es });
+  const titulo = `⏰ Cambio de horario: ${local} vs ${visitante}`;
+  const mensaje = `El partido ahora juega a las ${horaSantiago} (hora Chile). Revisa que tu pronóstico siga a tiempo.`;
+
+  const usuarios = await prisma.user.findMany({
+    include: { notifPrefs: true, pushSubs: true },
+  });
+
+  await prisma.notificacion.createMany({
+    data: usuarios.map((user) => ({
+      userId: user.id, tipo: "cambio_horario", partidoId, canal: "in_app", enviado: true, titulo, mensaje,
+    })),
+  });
+
+  await Promise.allSettled(
+    usuarios
+      .filter((u) => u.notifPrefs?.pushEnabled && u.pushSubs.length > 0)
+      .flatMap((u) => u.pushSubs)
+      .map((sub) =>
+        sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
+          title: titulo,
+          body: mensaje,
+          url: "/fixture",
         })
       )
   );
