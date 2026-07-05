@@ -136,10 +136,12 @@ export async function recalcularYGuardar(
     fase as FasePartido
   );
 
-  for (const [predId, puntos] of Array.from(puntosMap)) {
-    await prisma.prediccion.update({
-      where: { id: predId },
-      data: { puntos },
-    });
-  }
+  await prisma.$transaction(
+    Array.from(puntosMap).map(([predId, puntos]) =>
+      prisma.prediccion.update({
+        where: { id: predId },
+        data: { puntos },
+      })
+    )
+  );
 }

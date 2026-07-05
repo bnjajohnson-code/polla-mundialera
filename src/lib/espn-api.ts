@@ -50,6 +50,11 @@ export function espnMapStatus(name: string): EstadoPartido {
   }
 }
 
+// TLAs con dígitos son placeholders (RD32, 2J, 3RD, QFW1, SFW1, etc.)
+export function esPlaceholderTla(tla: string): boolean {
+  return /\d/.test(tla);
+}
+
 export function espnHomeTeam(e: EspnEvent): EspnCompetitor | undefined {
   return e.competitions?.[0]?.competitors?.find(c => c.homeAway === "home");
 }

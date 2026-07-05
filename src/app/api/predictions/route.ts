@@ -30,6 +30,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (partido.codigoLocal === null || partido.codigoVisitante === null) {
+      return NextResponse.json(
+        { error: "Los equipos de este partido aún no están definidos." },
+        { status: 403 }
+      );
+    }
+
     const prediccion = await prisma.prediccion.upsert({
       where: { userId_partidoId: { userId: session.user.id, partidoId: data.partidoId } },
       create: {

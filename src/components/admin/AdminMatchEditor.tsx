@@ -28,7 +28,8 @@ export function AdminMatchEditor({ onSaved }: Props) {
   useEffect(() => {
     fetch("/api/matches")
       .then((r) => r.json())
-      .then((d) => setPartidos(d.partidos ?? []));
+      .then((d) => setPartidos(d.partidos ?? []))
+      .catch(() => setResult("✗ No se pudo cargar la lista de partidos."));
   }, []);
 
   const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {

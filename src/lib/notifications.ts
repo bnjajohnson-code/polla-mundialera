@@ -87,25 +87,24 @@ export async function notificarCambioLider(): Promise<void> {
     include: { notifPrefs: true, pushSubs: true },
   });
 
-  for (const user of usuarios) {
-    await prisma.notificacion.create({
-      data: { userId: user.id, tipo: "cambio_lider", canal: "in_app", enviado: true, titulo, mensaje },
-    });
+  await prisma.notificacion.createMany({
+    data: usuarios.map((user) => ({
+      userId: user.id, tipo: "cambio_lider", canal: "in_app", enviado: true, titulo, mensaje,
+    })),
+  });
 
-    if (user.notifPrefs?.pushEnabled && user.pushSubs.length > 0) {
-      for (const sub of user.pushSubs) {
-        try {
-          await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
-            title: titulo,
-            body: mensaje,
-            url: "/tabla",
-          });
-        } catch {
-          // silencioso
-        }
-      }
-    }
-  }
+  await Promise.allSettled(
+    usuarios
+      .filter((u) => u.notifPrefs?.pushEnabled && u.pushSubs.length > 0)
+      .flatMap((u) => u.pushSubs)
+      .map((sub) =>
+        sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
+          title: titulo,
+          body: mensaje,
+          url: "/tabla",
+        })
+      )
+  );
 }
 
 /**
@@ -135,25 +134,25 @@ export async function notificarResultadoFinal(
     include: { notifPrefs: true, pushSubs: true },
   });
 
-  for (const user of usuarios) {
-    await prisma.notificacion.create({
-      data: { userId: user.id, tipo: "resultado_final", partidoId, canal: "in_app", enviado: true, titulo, mensaje },
-    });
+  await prisma.notificacion.createMany({
+    data: usuarios.map((user) => ({
+      userId: user.id, tipo: "resultado_final", partidoId, canal: "in_app", enviado: true, titulo, mensaje,
+    })),
+  });
 
-    if (user.notifPrefs?.pushEnabled && user.pushSubs.length > 0) {
-      for (const sub of user.pushSubs) {
-        try {
-          await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
-            title: titulo,
-            body: mensaje,
-            url: "/tabla",
-          });
-        } catch {
-          // silencioso (suscripción expirada, etc.)
-        }
-      }
-    }
-  }
+  // allSettled: una suscripción expirada no bloquea al resto
+  await Promise.allSettled(
+    usuarios
+      .filter((u) => u.notifPrefs?.pushEnabled && u.pushSubs.length > 0)
+      .flatMap((u) => u.pushSubs)
+      .map((sub) =>
+        sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
+          title: titulo,
+          body: mensaje,
+          url: "/tabla",
+        })
+      )
+  );
 }
 
 export async function procesarNotificaciones(): Promise<{ enviadas: number; errores: number }> {
@@ -198,6 +197,18 @@ async function notificarFaltantes(
     },
   });
 
+  // Dedup en una sola query: el cron corre cada 15 min con ventana de ±15 min,
+  // sin esto se duplicarían los envíos.
+  const yaEnviadas = await prisma.notificacion.findMany({
+    where: {
+      tipo,
+      partidoId: { in: partidos.map((p) => p.id) },
+      userId: { in: usuarios.map((u) => u.id) },
+    },
+    select: { userId: true, partidoId: true },
+  });
+  const enviadasSet = new Set(yaEnviadas.map((n) => `${n.userId}|${n.partidoId}`));
+
   for (const user of usuarios) {
     const prefs = user.notifPrefs;
     // El recordatorio cercano se controla con la preferencia avisoFaltante2h.
@@ -208,25 +219,20 @@ async function notificarFaltantes(
 
     if (faltantes.length === 0) continue;
 
-    // Solo avisar partidos no notificados antes: el cron corre cada 15 min
-    // con ventana de ±15 min, sin esto se duplicarían los envíos
-    const nuevos: typeof faltantes = [];
-    for (const partido of faltantes) {
-      const yaEnviado = await prisma.notificacion.findFirst({
-        where: { userId: user.id, tipo, partidoId: partido.id },
-      });
-      if (yaEnviado) continue;
-      nuevos.push(partido);
-
-      const titulo = `⚠️ Pronóstico pendiente: ${formatTeamEs(partido.equipoLocal, partido.codigoLocal)} vs ${formatTeamEs(partido.equipoVisitante, partido.codigoVisitante)}`;
-      const mensaje = `Tienes ${horasAntes}h para ingresar tu pronóstico.`;
-
-      await prisma.notificacion.create({
-        data: { userId: user.id, tipo, partidoId: partido.id, canal: "in_app", enviado: true, titulo, mensaje },
-      });
-    }
-
+    const nuevos = faltantes.filter((p) => !enviadasSet.has(`${user.id}|${p.id}`));
     if (nuevos.length === 0) continue;
+
+    await prisma.notificacion.createMany({
+      data: nuevos.map((partido) => ({
+        userId: user.id,
+        tipo,
+        partidoId: partido.id,
+        canal: "in_app",
+        enviado: true,
+        titulo: `⚠️ Pronóstico pendiente: ${formatTeamEs(partido.equipoLocal, partido.codigoLocal)} vs ${formatTeamEs(partido.equipoVisitante, partido.codigoVisitante)}`,
+        mensaje: `Tienes ${horasAntes}h para ingresar tu pronóstico.`,
+      })),
+    });
 
     // Email (agrupa todos los faltantes en un correo)
     if (!prefs || prefs.emailEnabled) {
@@ -247,20 +253,18 @@ async function notificarFaltantes(
       }
     }
 
-    // Push
+    // Push (en paralelo; una suscripción expirada no bloquea al resto)
     if (prefs?.pushEnabled && user.pushSubs.length > 0) {
-      for (const sub of user.pushSubs) {
-        try {
-          await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
+      const resultados = await Promise.allSettled(
+        user.pushSubs.map((sub) =>
+          sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
             title: `⚠️ Te faltan ${nuevos.length} pronóstico(s)`,
             body: `Tienes ${horasAntes}h para ingresar tus predicciones.`,
             url: "/fixture",
-          });
-          enviadas++;
-        } catch {
-          // silencioso
-        }
-      }
+          })
+        )
+      );
+      enviadas += resultados.filter((r) => r.status === "fulfilled").length;
     }
   }
 

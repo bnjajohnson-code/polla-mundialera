@@ -18,6 +18,7 @@ export function TreasuryPanel() {
     fetch("/api/treasury")
       .then((r) => r.json())
       .then((d) => setJugadores(d.jugadores ?? []))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

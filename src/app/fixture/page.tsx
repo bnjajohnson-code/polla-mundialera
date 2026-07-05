@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
@@ -13,21 +14,40 @@ import type { FasePartido } from "@prisma/client";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// La lista de partidos es idéntica para todos los jugadores; la cacheamos 60s
+// (mismo patrón que getTabla) para que las visitas concurrentes durante un
+// partido no repitan la query pesada. Las predicciones propias sí van por
+// usuario, con una query liviana aparte.
+const getPartidos = unstable_cache(
+  async () =>
+    prisma.partido.findMany({
+      orderBy: [{ fechaHoraUtc: "asc" }],
+    }),
+  ["fixture-partidos"],
+  { revalidate: 60 }
+);
+
 export default async function FixturePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const partidos = await prisma.partido.findMany({
-    orderBy: [{ fechaHoraUtc: "asc" }],
-    include: {
-      predicciones: {
-        where: { userId: session.user.id },
-        select: {
-          id: true, golesLocal: true, golesVisitante: true, puntos: true, updatedAt: true,
-        },
+  const [partidosBase, misPredicciones] = await Promise.all([
+    getPartidos(),
+    prisma.prediccion.findMany({
+      where: { userId: session.user.id },
+      select: {
+        id: true, partidoId: true, golesLocal: true, golesVisitante: true, puntos: true, updatedAt: true,
       },
-    },
-  });
+    }),
+  ]);
+
+  const predPorPartido = new Map(misPredicciones.map((p) => [p.partidoId, p]));
+  const partidos = partidosBase.map((p) => ({
+    ...p,
+    // unstable_cache serializa las fechas; las rehidratamos a Date
+    fechaHoraUtc: new Date(p.fechaHoraUtc),
+    predicciones: predPorPartido.has(p.id) ? [predPorPartido.get(p.id)!] : [],
+  }));
 
   // Determinar el primer partido de hoy (zona horaria de Santiago) para el
   // botón de salto. Si no hay partidos hoy, el próximo programado; si no, el último.

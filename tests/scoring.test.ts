@@ -125,14 +125,16 @@ describe("calcularPuntos – casos adicionales", () => {
     expect(r.aciertoDiferencia).toBe(false);
   });
 
-  it("solo aciertas goles local → 2 pts grupos", () => {
+  it("solo aciertas goles local → 3 pts grupos (diferencia en valor absoluto)", () => {
     // Pronóstico 1-2, resultado 1-0: visitante gana vs local gana → resultado ✗
+    // La diferencia se compara en valor absoluto (regla documentada en /reglas):
+    // |1-2|=1 y |1-0|=1 → diferencia ✓
     const r = calcularPuntos(1, 2, 1, 0, grupos);
-    expect(r.puntos).toBe(2); // 0 + 2 + 0 + 0
+    expect(r.puntos).toBe(3); // 0 + 2 + 0 + 1
     expect(r.aciertoResultado).toBe(false);
     expect(r.aciertoLocal).toBe(true);
     expect(r.aciertoVisitante).toBe(false);
-    expect(r.aciertoDiferencia).toBe(false);
+    expect(r.aciertoDiferencia).toBe(true);
   });
 
   it("solo aciertas diferencia (pero no resultado ni goles) → 1 pt grupos", () => {
