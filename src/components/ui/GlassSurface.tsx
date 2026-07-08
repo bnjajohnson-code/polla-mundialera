@@ -32,7 +32,6 @@ export interface GlassSurfaceProps {
 }
 
 type GlassCSSProperties = React.CSSProperties & {
-  "--glass-frost"?: number;
   "--glass-saturation"?: number;
   "--filter-id"?: string;
 };
@@ -154,7 +153,6 @@ export default function GlassSurface({
     width: typeof width === "number" ? `${width}px` : width,
     height: typeof height === "number" ? `${height}px` : height,
     borderRadius: `${borderRadius}px`,
-    "--glass-frost": backgroundOpacity,
     "--glass-saturation": saturation,
     "--filter-id": `url(#${filterId})`,
   };

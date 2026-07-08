@@ -21,7 +21,7 @@ export function Header({ title, showBack, backHref }: Props) {
   useEffect(() => setMounted(true), []);
 
   return (
-    <header className="fixed top-3 left-3 right-3 z-40 h-14 rounded-3xl lg:hidden">
+    <header className="fixed top-3 left-3 right-3 z-40 h-14 lg:hidden">
       <GlassSurface className="absolute inset-0" width="100%" height="100%" borderRadius={24} />
       <div className="relative z-10 flex items-center h-full px-4">
         {showBack && backHref ? (
