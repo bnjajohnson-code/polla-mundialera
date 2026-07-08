@@ -22,13 +22,7 @@ export function Header({ title, showBack, backHref }: Props) {
 
   return (
     <header className="fixed top-3 left-3 right-3 z-40 h-14 lg:hidden">
-      <GlassSurface
-        className="absolute inset-0"
-        style={{ position: "absolute", inset: 0 }}
-        width="100%"
-        height="100%"
-        borderRadius={24}
-      />
+      <GlassSurface className="absolute inset-0" width="100%" height="100%" borderRadius={24} />
       <div className="relative z-10 flex items-center h-full px-4">
         {showBack && backHref ? (
           <Link href={backHref} className="relative z-10 text-primary-600 dark:text-primary-400 flex items-center gap-1 font-medium text-sm">

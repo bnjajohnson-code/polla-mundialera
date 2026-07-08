@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Home, Trophy, User, Settings, BookOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import GlassSurface from "@/components/ui/GlassSurface";
 
 const tabs = [
   { href: "/fixture", label: "Fixture", icon: Home },
@@ -26,15 +25,8 @@ export function TabBar() {
   ];
 
   return (
-    <nav className="lg:hidden fixed z-50 tab-bar-float h-16 rounded-3xl overflow-hidden">
-      <GlassSurface
-        className="absolute inset-0"
-        style={{ position: "absolute", inset: 0 }}
-        width="100%"
-        height="100%"
-        borderRadius={24}
-      />
-      <div className="relative z-10 flex h-full">
+    <nav className="lg:hidden fixed z-50 glass-nav border tab-bar-float h-16 rounded-3xl overflow-hidden">
+      <div className="flex h-full">
         {allTabs.map((tab) => {
           const Icon = tab.icon;
           const active = pathname.startsWith(tab.href);
