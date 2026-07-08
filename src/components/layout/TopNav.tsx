@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, User, Settings, BookOpen, LogOut } from "lucide-react";
+import { Home, Trophy, User, Settings, BookOpen, LogOut, Sun, Moon } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "./ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import GlassSurface from "@/components/ui/GlassSurface";
 
@@ -21,7 +20,7 @@ const navItems = [
 export function TopNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -48,7 +47,13 @@ export function TopNav() {
 
   return (
     <div className="hidden lg:block fixed top-3 left-3 right-3 z-40 h-16">
-      <GlassSurface className="absolute inset-0" width="100%" height="100%" borderRadius={24} />
+      <GlassSurface
+        className="absolute inset-0"
+        style={{ position: "absolute", inset: 0 }}
+        width="100%"
+        height="100%"
+        borderRadius={24}
+      />
       <div className="relative z-10 flex items-center h-full px-5 gap-2">
         <img
           src={mounted ? (resolvedTheme === "dark" ? "/logo-dark.png" : "/logo-light.png") : "/logo-light.png"}
@@ -80,7 +85,6 @@ export function TopNav() {
 
         <div className="ml-auto flex items-center gap-1 flex-shrink-0">
           <NotificationBell />
-          <ThemeToggle />
 
           {session?.user && (
             <div ref={userMenuRef} className="relative ml-1">
@@ -112,6 +116,13 @@ export function TopNav() {
                     <User className="w-4 h-4" />
                     Mi Perfil
                   </Link>
+                  <button
+                    onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    {resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro"}
+                  </button>
                   <button
                     onClick={() => signOut({ callbackUrl: "/login" })}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
