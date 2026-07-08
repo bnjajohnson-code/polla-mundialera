@@ -79,7 +79,7 @@ export function TopNav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 flex-shrink-0">
-          <NotificationBell variant="header" />
+          <NotificationBell />
           <ThemeToggle />
 
           {session?.user && (

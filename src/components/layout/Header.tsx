@@ -43,7 +43,7 @@ export function Header({ title, showBack, backHref }: Props) {
         </h1>
         <div className="relative z-10 ml-auto flex items-center gap-1 text-gray-600 dark:text-gray-300">
           <ThemeToggle />
-          <NotificationBell variant="header" />
+          <NotificationBell />
         </div>
       </div>
     </header>

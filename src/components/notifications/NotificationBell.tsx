@@ -14,8 +14,6 @@ interface Notif {
 }
 
 interface Props {
-  /** "header" = ícono compacto (móvil) · "sidebar" = fila con texto (desktop) */
-  variant?: "header" | "sidebar";
   className?: string;
 }
 
@@ -30,7 +28,7 @@ function tiempoRelativo(iso: string): string {
   return `hace ${d} d`;
 }
 
-export function NotificationBell({ variant = "header", className }: Props) {
+export function NotificationBell({ className }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
@@ -86,48 +84,21 @@ export function NotificationBell({ variant = "header", className }: Props) {
 
   return (
     <div ref={ref} className={cn("relative", className)}>
-      {variant === "header" ? (
-        <button onClick={abrir} className="relative p-1" aria-label="Notificaciones">
-          {noLeidas > 0 ? (
-            <>
-              <BellDot className="w-6 h-6 text-primary-600" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                {noLeidas > 9 ? "9+" : noLeidas}
-              </span>
-            </>
-          ) : (
-            <Bell className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-          )}
-        </button>
-      ) : (
-        <button
-          onClick={abrir}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
-        >
-          {noLeidas > 0 ? (
-            <>
-              <BellDot className="w-5 h-5 text-primary-600" />
-              <span className="flex-1 text-left">Notificaciones</span>
-              <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
-                {noLeidas > 9 ? "9+" : noLeidas}
-              </span>
-            </>
-          ) : (
-            <>
-              <Bell className="w-5 h-5" />
-              <span className="flex-1 text-left">Notificaciones</span>
-            </>
-          )}
-        </button>
-      )}
+      <button onClick={abrir} className="relative p-1" aria-label="Notificaciones">
+        {noLeidas > 0 ? (
+          <>
+            <BellDot className="w-6 h-6 text-primary-600" />
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+              {noLeidas > 9 ? "9+" : noLeidas}
+            </span>
+          </>
+        ) : (
+          <Bell className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+        )}
+      </button>
 
       {open && (
-        <div
-          className={cn(
-            "absolute z-50 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden",
-            variant === "header" ? "right-0 mt-2" : "left-full bottom-0 ml-2"
-          )}
-        >
+        <div className="absolute right-0 mt-2 z-50 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
             <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm">Notificaciones</h3>
             <div className="flex items-center gap-2">
