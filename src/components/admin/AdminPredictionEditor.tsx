@@ -28,7 +28,8 @@ export function AdminPredictionEditor() {
   useEffect(() => {
     fetch("/api/matches")
       .then((r) => r.json())
-      .then((d) => setPartidos(d.partidos ?? []));
+      .then((d) => setPartidos(d.partidos ?? []))
+      .catch(() => {});
   }, []);
 
   const cargarJugadores = async (id: string) => {
@@ -36,18 +37,23 @@ export function AdminPredictionEditor() {
     setFilas([]);
     if (!id) return;
     setLoading(true);
-    const d = await fetch(`/api/admin/predictions?partidoId=${id}`).then((r) => r.json());
-    const fs: Fila[] = d.jugadores ?? [];
-    setFilas(fs);
-    const dr: Record<string, { l: string; v: string }> = {};
-    fs.forEach((f) => {
-      dr[f.userId] = {
-        l: f.prediccion ? String(f.prediccion.golesLocal) : "",
-        v: f.prediccion ? String(f.prediccion.golesVisitante) : "",
-      };
-    });
-    setDrafts(dr);
-    setLoading(false);
+    try {
+      const d = await fetch(`/api/admin/predictions?partidoId=${id}`).then((r) => r.json());
+      const fs: Fila[] = d.jugadores ?? [];
+      setFilas(fs);
+      const dr: Record<string, { l: string; v: string }> = {};
+      fs.forEach((f) => {
+        dr[f.userId] = {
+          l: f.prediccion ? String(f.prediccion.golesLocal) : "",
+          v: f.prediccion ? String(f.prediccion.golesVisitante) : "",
+        };
+      });
+      setDrafts(dr);
+    } catch {
+      // Falla de red: la lista queda vacía pero el loading no se cuelga
+    } finally {
+      setLoading(false);
+    }
   };
 
   const guardar = async (userId: string) => {

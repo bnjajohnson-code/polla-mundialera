@@ -28,7 +28,10 @@ export async function GET() {
       id: true, nombre: true, email: true, rol: true, esTesorero: true, createdAt: true,
       notifPrefs: true,
       predicciones: {
-        include: { partido: true },
+        select: {
+          puntos: true,
+          partido: { select: { estado: true, fase: true } },
+        },
         orderBy: { partido: { fechaHoraUtc: "desc" } },
       },
     },

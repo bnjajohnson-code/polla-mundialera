@@ -199,7 +199,7 @@ export default function AdminPage() {
       <div className="card p-4 mb-4">
         <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3">Sincronización de Resultados</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Actualiza el fixture y resultados desde football-data.org. Se ejecuta automáticamente cada 15 min.
+          Actualiza el fixture y resultados desde ESPN. La sincronización automática está pausada; usa este botón tras cada partido.
         </p>
         <button
           onClick={handleSync}

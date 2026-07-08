@@ -164,6 +164,9 @@ export async function POST(req: Request) {
 
       const nuevoEstado = regresionEstado ? existente.estado : estado;
       const aplicarGoles = !existente.resultadoManual && !regresionGoles;
+      // Si el admin corrigió el horario a mano (ej. cambio por clima), no
+      // dejar que ESPN lo pise de vuelta hasta que la fuente lo alcance.
+      const nuevaFechaHoraUtc = existente.horarioManual ? existente.fechaHoraUtc : fechaHoraUtc;
 
       // Un código placeholder (no reconocido como equipo real) equivale a
       // "todavía sin equipo": una fila con algún lado así NO cuenta como
@@ -187,7 +190,7 @@ export async function POST(req: Request) {
         equipoVisitante: nuevoVisitante,
         codigoLocal: nuevoTlaLocal,
         codigoVisitante: nuevoTlaVisit,
-        fechaHoraUtc,
+        fechaHoraUtc: nuevaFechaHoraUtc,
         estado: nuevoEstado,
       };
 
@@ -214,7 +217,7 @@ export async function POST(req: Request) {
         existente.equipoVisitante !== nuevoVisitante ||
         existente.codigoLocal !== nuevoTlaLocal ||
         existente.codigoVisitante !== nuevoTlaVisit ||
-        existente.fechaHoraUtc.getTime() !== fechaHoraUtc.getTime() ||
+        existente.fechaHoraUtc.getTime() !== nuevaFechaHoraUtc.getTime() ||
         existente.estado !== nuevoEstado ||
         (aplicarGoles && (existente.golesLocal !== score.home || existente.golesVisitante !== score.away));
 

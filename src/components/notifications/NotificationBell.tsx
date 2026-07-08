@@ -45,14 +45,9 @@ export function NotificationBell({ className }: Props) {
       .catch(() => {});
   };
 
-  useEffect(() => {
-    // Sin polling: una sola consulta al cargar la página (para mostrar el
-    // contador de no leídas) y luego nada hasta que el usuario abra la campana.
-    // Antes consultábamos en intervalo, lo que mantenía a Neon/Vercel ocupados
-    // 24/7 con pestañas abiertas que nadie mira. Ahora una pestaña abandonada
-    // hace 1 consulta al cargar y después cero.
-    cargar();
-  }, []);
+  // Sin fetch al montar: la consulta ocurre solo cuando el usuario abre la
+  // campana. El badge de no-leídas ya no aparece automáticamente — tradeoff
+  // aceptado para no gastar una invocación serverless por cada página vista.
 
   // Cerrar al hacer clic fuera
   useEffect(() => {

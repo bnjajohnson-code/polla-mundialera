@@ -44,6 +44,7 @@ const ESTADO_BADGE: Record<string, { label: string; class: string }> = {
 export function MatchCard({ partido }: Props) {
   const bloqueado = estaBlockeado(partido.fechaHoraUtc, partido.estado);
   const finalizado = partido.estado === "finalizado";
+  const equiposPorDefinir = partido.codigoLocal === null || partido.codigoVisitante === null;
   const badge = ESTADO_BADGE[partido.estado] ?? ESTADO_BADGE.programado;
   const pred = partido.miPrediccion;
   const tienePronostico = pred !== null && pred !== undefined;
@@ -102,8 +103,15 @@ export function MatchCard({ partido }: Props) {
         </div>
       )}
 
+      {/* Equipos aún no definidos: sin pronóstico hasta que el cuadro avance */}
+      {!bloqueado && equiposPorDefinir && (
+        <div className="text-center text-sm text-gray-400 dark:text-gray-500 py-2">
+          Equipos por definir — podrás pronosticar cuando se conozcan.
+        </div>
+      )}
+
       {/* Stepper (solo si el partido aún acepta pronósticos) */}
-      {!bloqueado && (
+      {!bloqueado && !equiposPorDefinir && (
         <PredictionStepper
           partidoId={partido.id}
           bloqueado={bloqueado}

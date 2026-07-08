@@ -70,6 +70,9 @@ model Partido {
   golesVisitanteReg Int?
   // Indica si el resultado fue ingresado manualmente por el admin
   resultadoManual Boolean       @default(false)
+  // Indica si el horario fue corregido manualmente por el admin (ej. cambio
+  // por clima). El sync no debe pisarlo con el horario de ESPN.
+  horarioManual   Boolean       @default(false)
 
   predicciones    Prediccion[]
 

@@ -4,12 +4,22 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { recalcularYGuardar } from "@/lib/scoring";
-import { notificarResultadoFinal, notificarCambioLider } from "@/lib/notifications";
+import { notificarResultadoFinal, notificarCambioLider, notificarCambioHorario } from "@/lib/notifications";
 
-const schema = z.object({
-  golesLocal: z.number().int().min(0).max(30),
-  golesVisitante: z.number().int().min(0).max(30),
-});
+const schema = z
+  .object({
+    golesLocal: z.number().int().min(0).max(30).optional(),
+    golesVisitante: z.number().int().min(0).max(30).optional(),
+    fechaHoraUtc: z.string().datetime().optional(),
+  })
+  .refine(
+    (d) => (d.golesLocal !== undefined) === (d.golesVisitante !== undefined),
+    { message: "golesLocal y golesVisitante deben ir juntos" }
+  )
+  .refine(
+    (d) => d.golesLocal !== undefined || d.fechaHoraUtc !== undefined,
+    { message: "Nada para guardar" }
+  );
 
 export async function PATCH(
   req: Request,
@@ -26,22 +36,33 @@ export async function PATCH(
     const partido = await prisma.partido.findUnique({ where: { id: params.id } });
     if (!partido) return NextResponse.json({ error: "Partido no encontrado" }, { status: 404 });
 
-    await prisma.partido.update({
-      where: { id: params.id },
-      data: {
-        golesLocal: data.golesLocal,
-        golesVisitante: data.golesVisitante,
-        golesLocalReg: data.golesLocal,
-        golesVisitanteReg: data.golesVisitante,
-        estado: "finalizado",
-        resultadoManual: true,
-      },
-    });
+    if (data.golesLocal !== undefined && data.golesVisitante !== undefined) {
+      await prisma.partido.update({
+        where: { id: params.id },
+        data: {
+          golesLocal: data.golesLocal,
+          golesVisitante: data.golesVisitante,
+          golesLocalReg: data.golesLocal,
+          golesVisitanteReg: data.golesVisitante,
+          estado: "finalizado",
+          resultadoManual: true,
+        },
+      });
 
-    // Recalcular puntos de todas las predicciones de este partido
-    await recalcularYGuardar(params.id, data.golesLocal, data.golesVisitante, partido.fase);
-    await notificarResultadoFinal(params.id, data.golesLocal, data.golesVisitante);
-    await notificarCambioLider();
+      // Recalcular puntos de todas las predicciones de este partido
+      await recalcularYGuardar(params.id, data.golesLocal, data.golesVisitante, partido.fase);
+      await notificarResultadoFinal(params.id, data.golesLocal, data.golesVisitante);
+      await notificarCambioLider();
+    }
+
+    if (data.fechaHoraUtc !== undefined) {
+      const nuevaFecha = new Date(data.fechaHoraUtc);
+      await prisma.partido.update({
+        where: { id: params.id },
+        data: { fechaHoraUtc: nuevaFecha, horarioManual: true },
+      });
+      await notificarCambioHorario(params.id, nuevaFecha);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

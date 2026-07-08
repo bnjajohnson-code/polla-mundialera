@@ -51,8 +51,11 @@ export default function PerfilPage() {
         const fin = preds.filter((p: { partido: { estado: string } }) => p.partido.estado === "finalizado");
         const pts = fin.reduce((s: number, p: { puntos: number | null }) => s + (p.puntos ?? 0), 0);
         const maxPts = (fase: string) => fase === "grupos" ? 10 : 20;
-        const ple = fin.filter((p: { puntos: number | null; partido: { fase: string } }) => p.puntos === maxPts(p.partido.fase)).length;
+        const ple = fin.filter((p: { puntos: number | null; partido: { fase: string } }) => p.puntos !== null && p.puntos === maxPts(p.partido.fase)).length;
         setStats({ puntos: pts, plenos: ple, jugados: fin.length });
+      })
+      .catch(() => {
+        // Silencioso: las stats quedan en 0 y las prefs ocultas; la página sigue usable.
       });
   }, [session]);
 
