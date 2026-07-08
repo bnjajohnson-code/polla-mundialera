@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { ThemeToggle } from "./ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import GlassSurface from "@/components/ui/GlassSurface";
 
 interface Props {
   title: string;
@@ -20,8 +21,9 @@ export function Header({ title, showBack, backHref }: Props) {
   useEffect(() => setMounted(true), []);
 
   return (
-    <header className="fixed top-3 left-3 right-3 z-40 glass-nav border rounded-3xl lg:hidden">
-      <div className="relative flex items-center h-14 px-4">
+    <header className="fixed top-3 left-3 right-3 z-40 h-14 rounded-3xl lg:hidden">
+      <GlassSurface className="absolute inset-0" width="100%" height="100%" borderRadius={24} />
+      <div className="relative z-10 flex items-center h-full px-4">
         {showBack && backHref ? (
           <Link href={backHref} className="relative z-10 text-primary-600 dark:text-primary-400 flex items-center gap-1 font-medium text-sm">
             <ArrowLeft className="w-4 h-4" />
