@@ -9,9 +9,9 @@ async function getAutorizado() {
   if (!session) return null;
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { rol: true, esTesorero: true },
+    select: { rol: true, esAdmin: true, esTesorero: true },
   });
-  if (!user || (user.rol !== "admin" && !user.esTesorero)) return null;
+  if (!user || (user.rol !== "admin" && !user.esAdmin && !user.esTesorero)) return null;
   return session;
 }
 

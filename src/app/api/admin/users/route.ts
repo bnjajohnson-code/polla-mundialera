@@ -12,7 +12,7 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     select: {
-      id: true, nombre: true, email: true, rol: true, createdAt: true,
+      id: true, nombre: true, email: true, rol: true, esAdmin: true, createdAt: true,
       _count: { select: { predicciones: true } },
     },
     orderBy: { createdAt: "asc" },
@@ -40,7 +40,7 @@ export async function DELETE(req: Request) {
 
 const patchSchema = z.object({
   userId: z.string(),
-  rol: z.enum(["admin", "jugador"]),
+  esAdmin: z.boolean(),
 });
 
 export async function PATCH(req: Request) {
@@ -50,15 +50,17 @@ export async function PATCH(req: Request) {
   }
 
   try {
-    const { userId, rol } = patchSchema.parse(await req.json());
+    const { userId, esAdmin } = patchSchema.parse(await req.json());
     if (userId === session.user.id) {
-      return NextResponse.json({ error: "No puedes cambiar tu propio rol" }, { status: 400 });
+      return NextResponse.json({ error: "No puedes cambiar tus propios privilegios" }, { status: 400 });
     }
 
+    // No se toca `rol`: la persona sigue siendo jugador y participando en el
+    // juego; solo se otorga/revoca el privilegio de administrador.
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { rol },
-      select: { id: true, rol: true },
+      data: { esAdmin },
+      select: { id: true, esAdmin: true },
     });
     return NextResponse.json({ user });
   } catch {
