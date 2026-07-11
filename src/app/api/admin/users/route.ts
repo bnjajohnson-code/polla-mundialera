@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
@@ -35,4 +36,32 @@ export async function DELETE(req: Request) {
 
   await prisma.user.delete({ where: { id: userId } });
   return NextResponse.json({ ok: true });
+}
+
+const patchSchema = z.object({
+  userId: z.string(),
+  rol: z.enum(["admin", "jugador"]),
+});
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "admin") {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
+  try {
+    const { userId, rol } = patchSchema.parse(await req.json());
+    if (userId === session.user.id) {
+      return NextResponse.json({ error: "No puedes cambiar tu propio rol" }, { status: 400 });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { rol },
+      select: { id: true, rol: true },
+    });
+    return NextResponse.json({ user });
+  } catch {
+    return NextResponse.json({ error: "Datos inválidos" }, { status: 422 });
+  }
 }
