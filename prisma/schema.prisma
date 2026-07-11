@@ -35,7 +35,13 @@ model User {
   nombre    String
   email     String   @unique
   password  String
+  // Cuenta de sistema (admin@polla.com) que NO participa en el juego.
+  // Las personas reales son siempre "jugador", aunque tengan privilegios
+  // de admin (ver esAdmin), para seguir apareciendo en la tabla.
   rol       Role     @default(jugador)
+  // Otorga privilegios de administrador a un jugador real sin sacarlo del
+  // juego. La autorización de admin es (rol = admin || esAdmin).
+  esAdmin    Boolean @default(false)
   // Tesorero: puede gestionar quién pagó su cuota del pozo
   esTesorero Boolean @default(false)
   // Indica si el jugador pagó su cuota del pozo
