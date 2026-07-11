@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell, KeyRound, X } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell, KeyRound, X, ShieldCheck } from "lucide-react";
 import { AdminMatchEditor } from "@/components/admin/AdminMatchEditor";
 import { AdminPredictionEditor } from "@/components/admin/AdminPredictionEditor";
 
@@ -92,6 +92,21 @@ export default function AdminPage() {
     if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
     await fetch(`/api/admin/users?id=${userId}`, { method: "DELETE" });
     setUsers((u) => u.filter((x) => x.id !== userId));
+  };
+
+  const handleMakeAdmin = async (userId: string, nombre: string) => {
+    if (!confirm(`¿Dar privilegios de administrador a ${nombre}?`)) return;
+    const res = await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, rol: "admin" }),
+    });
+    const data = await res.json();
+    if (data.user) {
+      setUsers((u) => u.map((x) => (x.id === userId ? { ...x, rol: "admin" } : x)));
+    } else {
+      alert(data.error ?? "Error al actualizar el rol");
+    }
   };
 
   const handleCopyCode = () => {
@@ -354,6 +369,13 @@ export default function AdminPage() {
             )}
             {user.rol !== "admin" && (
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => handleMakeAdmin(user.id, user.nombre)}
+                  className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-lg transition-colors"
+                  title="Dar privilegios de administrador"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => { setResetUserId(user.id); setResetPassword(""); setResetResult(null); }}
                   className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-lg transition-colors"
