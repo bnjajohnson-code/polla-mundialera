@@ -36,6 +36,14 @@ export default async function PartidoPage({ params }: { params: { id: string } }
     ? partido.predicciones
     : partido.predicciones.filter((p) => p.userId === session.user.id);
 
+  const faltantes = bloqueado
+    ? await prisma.user.findMany({
+        where: { rol: "jugador", id: { notIn: partido.predicciones.map((p) => p.userId) } },
+        select: { id: true, nombre: true },
+        orderBy: { nombre: "asc" },
+      })
+    : [];
+
   return (
     <AppShell
       title={`${formatTeamDisplay(partido.equipoLocal, partido.codigoLocal)} vs ${formatTeamDisplay(partido.equipoVisitante, partido.codigoVisitante)}`}
@@ -95,7 +103,7 @@ export default async function PartidoPage({ params }: { params: { id: string } }
             </h3>
           </div>
 
-          {predicciones.length === 0 ? (
+          {predicciones.length === 0 && faltantes.length === 0 ? (
             <div className="py-10 text-center text-gray-400 dark:text-gray-600">
               <p className="text-sm">Ningún jugador hizo pronóstico.</p>
             </div>
@@ -153,6 +161,21 @@ export default async function PartidoPage({ params }: { params: { id: string } }
                   </div>
                 );
               })}
+              {faltantes.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-gray-400 dark:text-gray-600 truncate">
+                      {user.nombre}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="font-bold text-gray-300 dark:text-gray-600 tabular-nums">—</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
