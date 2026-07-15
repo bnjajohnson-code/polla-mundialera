@@ -47,6 +47,7 @@ model User {
   notificaciones  Notificacion[]
   pushSubs        PushSubscription[]
   notifPrefs      NotifPreferencia?
+  simulaciones    SimulacionLog[]
 
   @@map("users")
 }
@@ -156,4 +157,18 @@ model NotifPreferencia {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notif_preferencias")
+}
+
+model SimulacionLog {
+  id          String   @id @default(cuid())
+  userId      String
+  partidoId   String
+  golesLocal  Int
+  golesVisitante Int
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("simulacion_logs")
 }

@@ -38,6 +38,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "El partido aún no se cierra" }, { status: 403 });
   }
 
+  // Registro de auditoría: no bloquea la respuesta ni se espera su resultado.
+  prisma.simulacionLog
+    .create({
+      data: { userId: session.user.id, partidoId, golesLocal: gl, golesVisitante: gv },
+    })
+    .catch(() => {});
+
   const usuarios = await prisma.user.findMany({
     where: { rol: "jugador" },
     include: {

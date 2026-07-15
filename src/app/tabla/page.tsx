@@ -18,6 +18,34 @@ const getTabla = unstable_cache(obtenerTabla, ["tabla-posiciones"], {
   tags: ["tabla"],
 });
 
+// Top 3 jugadores que más veces han usado el simulador. Se cachea igual que la
+// tabla: solo cambia con nuevas simulaciones, no necesita ser en tiempo real.
+const getNerviosos = unstable_cache(
+  async () => {
+    const grouped = await prisma.simulacionLog.groupBy({
+      by: ["userId"],
+      _count: { userId: true },
+      orderBy: { _count: { userId: "desc" } },
+      take: 3,
+    });
+    if (grouped.length === 0) return [];
+
+    const usuarios = await prisma.user.findMany({
+      where: { id: { in: grouped.map((g) => g.userId) } },
+      select: { id: true, nombre: true },
+    });
+    const nombrePorId = new Map(usuarios.map((u) => [u.id, u.nombre]));
+
+    return grouped.map((g) => ({
+      userId: g.userId,
+      nombre: nombrePorId.get(g.userId) ?? "Jugador",
+      cantidad: g._count.userId,
+    }));
+  },
+  ["tabla-nerviosos"],
+  { revalidate: 60, tags: ["tabla"] }
+);
+
 // Partidos cerrados (en juego o ya bloqueados) sin resultado final: los únicos
 // simulables. Depende del reloj, así que se consulta fuera del cache de la tabla.
 async function getPartidosSimulables() {
@@ -44,8 +72,13 @@ export default async function TablaPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const [tabla, simulables] = await Promise.all([getTabla(), getPartidosSimulables()]);
+  const [tabla, simulables, nerviosos] = await Promise.all([
+    getTabla(),
+    getPartidosSimulables(),
+    getNerviosos(),
+  ]);
   const leader = tabla[0];
+  const medallas = ["🥇", "🥈", "🥉"];
 
   return (
     <AppShell title="Tabla de Posiciones">
@@ -86,6 +119,27 @@ export default async function TablaPage() {
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
             🥇 1° lugar: 60% &nbsp;·&nbsp; 🥈 2° lugar: 30% &nbsp;·&nbsp; 🥉 3° lugar: 10%
           </p>
+        </div>
+      )}
+
+      {nerviosos.length > 0 && (
+        <div className="mt-4 card p-4">
+          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide font-semibold mb-3 text-center">
+            Tabla de los nerviosos
+          </p>
+          <div className="space-y-2">
+            {nerviosos.map((n, i) => (
+              <div key={n.userId} className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{medallas[i]}</span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{n.nombre}</span>
+                </div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {n.cantidad} simulación{n.cantidad !== 1 ? "es" : ""}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </AppShell>
