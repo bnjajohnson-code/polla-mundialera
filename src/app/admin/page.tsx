@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell, KeyRound, X } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Copy, Check, Save, Bell, KeyRound, X, ShieldCheck, ShieldOff } from "lucide-react";
 import { AdminMatchEditor } from "@/components/admin/AdminMatchEditor";
 import { AdminPredictionEditor } from "@/components/admin/AdminPredictionEditor";
 
@@ -13,6 +13,7 @@ interface User {
   nombre: string;
   email: string;
   rol: string;
+  esAdmin: boolean;
   createdAt: string;
   _count: { predicciones: number };
 }
@@ -92,6 +93,24 @@ export default function AdminPage() {
     if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
     await fetch(`/api/admin/users?id=${userId}`, { method: "DELETE" });
     setUsers((u) => u.filter((x) => x.id !== userId));
+  };
+
+  const handleToggleAdmin = async (userId: string, nombre: string, esAdmin: boolean) => {
+    const mensaje = esAdmin
+      ? `¿Dar privilegios de administrador a ${nombre}? Seguirá participando en el juego.`
+      : `¿Quitar los privilegios de administrador a ${nombre}?`;
+    if (!confirm(mensaje)) return;
+    const res = await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, esAdmin }),
+    });
+    const data = await res.json();
+    if (data.user) {
+      setUsers((u) => u.map((x) => (x.id === userId ? { ...x, esAdmin } : x)));
+    } else {
+      alert(data.error ?? "Error al actualizar los privilegios");
+    }
   };
 
   const handleCopyCode = () => {
@@ -347,13 +366,34 @@ export default function AdminPage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500">{user._count.predicciones} pronósticos</p>
             </div>
-            {user.rol === "admin" && (
+            {user.rol === "admin" ? (
               <span className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full shrink-0">
-                Admin
+                Admin (sistema)
               </span>
-            )}
-            {user.rol !== "admin" && (
+            ) : (
               <div className="flex items-center gap-1 shrink-0">
+                {user.esAdmin && (
+                  <span className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full">
+                    Admin
+                  </span>
+                )}
+                {user.esAdmin ? (
+                  <button
+                    onClick={() => handleToggleAdmin(user.id, user.nombre, false)}
+                    className="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950 rounded-lg transition-colors"
+                    title="Quitar privilegios de administrador"
+                  >
+                    <ShieldOff className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleToggleAdmin(user.id, user.nombre, true)}
+                    className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-lg transition-colors"
+                    title="Dar privilegios de administrador"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   onClick={() => { setResetUserId(user.id); setResetPassword(""); setResetResult(null); }}
                   className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-lg transition-colors"
@@ -361,12 +401,14 @@ export default function AdminPage() {
                 >
                   <KeyRound className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => handleDeleteUser(user.id, user.nombre)}
-                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {!user.esAdmin && (
+                  <button
+                    onClick={() => handleDeleteUser(user.id, user.nombre)}
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             )}
 

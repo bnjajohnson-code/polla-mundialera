@@ -28,11 +28,16 @@ export const authOptions: NextAuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
+        // Rol efectivo: la cuenta de sistema (rol "admin") y cualquier jugador
+        // con esAdmin tienen privilegios de administrador. Se calcula aquí para
+        // que todos los checks `role === "admin"` sigan funcionando igual.
+        const esAdministrador = user.rol === "admin" || user.esAdmin;
+
         return {
           id: user.id,
           email: user.email,
           name: user.nombre,
-          role: user.rol,
+          role: esAdministrador ? "admin" : "jugador",
         };
       },
     }),
