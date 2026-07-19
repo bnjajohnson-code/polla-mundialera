@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 
-const DISMISS_KEY = "campeon_modal_dismissed";
 const MEDALLAS = ["🥇", "🥈", "🥉"];
 
 type Props = {
@@ -17,18 +16,11 @@ type Props = {
 };
 
 export function CampeonModal({ podio }: Props) {
-  const [visible, setVisible] = useState(false);
+  // Se muestra en cada ingreso a /fixture mientras la polla esté finalizada;
+  // cerrar solo lo oculta para esta visita, no queda recordado entre sesiones.
+  const [visible, setVisible] = useState(true);
 
-  useEffect(() => {
-    // No mostrar si ya descartó (el torneo termina una sola vez)
-    if (localStorage.getItem(DISMISS_KEY)) return;
-    setVisible(true);
-  }, []);
-
-  const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, "1");
-    setVisible(false);
-  };
+  const dismiss = () => setVisible(false);
 
   const campeon = podio[0];
   if (!visible || !campeon) return null;
