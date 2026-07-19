@@ -5,18 +5,18 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
 import { SimulationPanel } from "@/components/standings/SimulationPanel";
-import { obtenerTabla } from "@/lib/standings";
+import { getTabla } from "@/lib/standings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// La tabla es idéntica para todos los jugadores y solo cambia cuando finaliza un
-// partido. La cacheamos 60s para que múltiples refrescos durante un partido no
-// despierten/consulten la base de Neon en cada visita (ahorro de compute).
-const getTabla = unstable_cache(obtenerTabla, ["tabla-posiciones"], {
-  revalidate: 60,
-  tags: ["tabla"],
-});
+// Partidos aún no jugados: si no queda ninguno, la polla terminó y el banner
+// del líder pasa a modo campeón. Count barato (usa el índice por estado).
+const getPendientes = unstable_cache(
+  () => prisma.partido.count({ where: { estado: { in: ["programado", "en_juego"] } } }),
+  ["partidos-pendientes"],
+  { revalidate: 60, tags: ["tabla"] }
+);
 
 // Top 3 jugadores que más veces han usado el simulador. Se cachea igual que la
 // tabla: solo cambia con nuevas simulaciones, no necesita ser en tiempo real.
@@ -72,12 +72,14 @@ export default async function TablaPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const [tabla, simulables, nerviosos] = await Promise.all([
+  const [tabla, simulables, nerviosos, pendientes] = await Promise.all([
     getTabla(),
     getPartidosSimulables(),
     getNerviosos(),
+    getPendientes(),
   ]);
   const leader = tabla[0];
+  const finalizada = pendientes === 0 && !!leader && leader.puntosTotales > 0;
   const medallas = ["🥇", "🥈", "🥉"];
 
   return (
@@ -85,8 +87,13 @@ export default async function TablaPage() {
       {leader && (
         <div className="card p-4 mb-4 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-900">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🥇</span>
+            <span className="text-3xl">{finalizada ? "🏆" : "🥇"}</span>
             <div>
+              {finalizada && (
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                  🏆 ¡Campeón de la Polla! 🎉
+                </p>
+              )}
               <p className="font-bold text-gray-900 dark:text-gray-100">{leader.nombre}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {leader.puntosTotales} puntos · {leader.plenos} achuntes
