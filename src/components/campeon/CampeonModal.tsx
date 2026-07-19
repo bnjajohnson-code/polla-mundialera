@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 
 const MEDALLAS = ["🥇", "🥈", "🥉"];
@@ -16,9 +17,15 @@ type Props = {
 };
 
 export function CampeonModal({ podio }: Props) {
-  // Se muestra en cada ingreso a /fixture mientras la polla esté finalizada;
-  // cerrar solo lo oculta para esta visita, no queda recordado entre sesiones.
+  // Vive en el layout de (app), que persiste entre navegaciones internas.
+  // Reaparece en cada cambio de página (incluida la misma ruta con otro id)
+  // mientras la polla siga finalizada; cerrar solo lo oculta para esa vista.
+  const pathname = usePathname();
   const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setVisible(true);
+  }, [pathname]);
 
   const dismiss = () => setVisible(false);
 
@@ -52,7 +59,7 @@ export function CampeonModal({ podio }: Props) {
           🎉 ¡Tenemos campeón! 🎉
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Se jugaron todos los partidos del mundial
+          Campeón de la Polla Comtec Mundial 2026
         </p>
 
         <div className="mb-4">
