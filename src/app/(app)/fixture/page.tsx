@@ -8,8 +8,6 @@ import { MatchCard } from "@/components/fixture/MatchCard";
 import { MissingPredictionsBanner } from "@/components/notifications/MissingPredictionsBanner";
 import { PushPromptBanner } from "@/components/notifications/PushPromptBanner";
 import { JumpToTodayButton } from "@/components/fixture/JumpToTodayButton";
-import { CampeonModal } from "@/components/campeon/CampeonModal";
-import { esPollaFinalizada, getTabla } from "@/lib/standings";
 import { FASE_LABELS, FASE_ORDER, formatFechaPartido } from "@/lib/utils";
 import type { FasePartido } from "@prisma/client";
 
@@ -42,13 +40,6 @@ export default async function FixturePage() {
       },
     }),
   ]);
-
-  // Si la polla ya terminó, cargamos el podio para el modal de campeón.
-  // Este await solo corre con el torneo finalizado (costo cero en régimen
-  // normal) y reutiliza la misma entrada de cache que /tabla.
-  const podio = esPollaFinalizada(partidosBase)
-    ? (await getTabla()).slice(0, 3)
-    : null;
 
   const predPorPartido = new Map(misPredicciones.map((p) => [p.partidoId, p]));
   const partidos = partidosBase.map((p) => ({
@@ -89,16 +80,6 @@ export default async function FixturePage() {
 
   return (
     <AppShell title="Polla Mundialera 2026">
-      {podio && podio.length > 0 && (
-        <CampeonModal
-          podio={podio.map(({ userId, nombre, puntosTotales, plenos }) => ({
-            userId,
-            nombre,
-            puntosTotales,
-            plenos,
-          }))}
-        />
-      )}
       <PushPromptBanner />
       <MissingPredictionsBanner />
 
